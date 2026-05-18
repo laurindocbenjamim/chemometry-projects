@@ -23,6 +23,10 @@
             <i data-lucide="activity" class="brand-icon"></i>
             <h1>Spectra<span>Lab</span></h1>
         </div>
+        <nav class="app-nav">
+            <button class="nav-tab active" id="tab-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+            <button class="nav-tab" id="tab-icons"><i data-lucide="search-code"></i> Icon Browser</button>
+        </nav>
         <div class="status-indicator">
             <span class="pulse-dot"></span>
             <span id="api-status">Connecting Backend...</span>
@@ -114,6 +118,7 @@
                 </div>
 
                 <!-- Selected Files List -->
+                <div id="selected-files-count" class="selected-files-count">No files selected</div>
                 <div id="file-list" class="file-badge-container"></div>
 
                 <button type="submit" class="btn-primary" id="submit-btn" disabled>
@@ -124,6 +129,14 @@
 
         <!-- Main Display Panel -->
         <section class="main-display">
+            <!-- Progress Bar -->
+            <div id="progress-container" class="progress-container" style="display: none;">
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                </div>
+                <span class="progress-text" id="progress-text">Ready...</span>
+            </div>
+
             <!-- Empty State -->
             <div id="empty-state" class="empty-state glass-card">
                 <i data-lucide="bar-chart-3" class="placeholder-icon animate-float"></i>
@@ -133,6 +146,22 @@
 
             <!-- Dashboard Charts Container -->
             <div id="dashboard-content" class="dashboard-content" style="display: none;">
+                <!-- Pipeline Preprocessing Stages Progress Tracker -->
+                <div class="stages-tracker-container" id="stages-tracker-container" style="display: none;">
+                    <span class="tracker-label">Pipeline Phase:</span>
+                    <div class="stages-pills" id="stages-pills"></div>
+                </div>
+
+                <!-- Visualization Mode Switcher -->
+                <div class="segment-control glass-card" style="margin-top: 8px;">
+                    <button type="button" class="segment-btn active" id="btn-show-interactive">
+                        <i data-lucide="bar-chart-2"></i> Interactive Charts (ApexCharts)
+                    </button>
+                    <button type="button" class="segment-btn" id="btn-show-original">
+                        <i data-lucide="image"></i> Original Plots (Matplotlib)
+                    </button>
+                </div>
+
                 <!-- Quick Stats -->
                 <div class="stats-row">
                     <div class="stat-card glass-card">
@@ -157,10 +186,30 @@
                 <div class="charts-grid" id="charts-grid">
                     <!-- Charts dynamically injected here -->
                 </div>
+
+                <!-- Original Scientific Matplotlib Plots Grid -->
+                <div class="original-plots-grid" id="original-plots-grid" style="display: none;">
+                    <!-- Matplotlib high-res png files dynamically loaded here -->
+                </div>
             </div>
         </section>
     </main>
 
+    <!-- Global Icon Browser Workspace Panel -->
+    <section id="icon-browser-section" class="icon-browser-section glass-card" style="display: none; margin: 24px; padding: 24px;">
+        <div class="icon-browser-header">
+            <h2><i data-lucide="palette"></i> Lucide Icon Library Browser</h2>
+            <p>Search, preview, and click any icon to copy its inline HTML syntax directly to your clipboard.</p>
+            <div class="icon-search-wrapper">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="icon-search-input" placeholder="Search icons (e.g. chart, data, settings, lab, file)...">
+            </div>
+        </div>
+        
+        <div class="icon-grid" id="icon-browser-grid"></div>
+    </section>
+
+    <script src="chart-renderers.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

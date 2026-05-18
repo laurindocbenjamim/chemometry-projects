@@ -482,3 +482,344 @@ button {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
 }
+
+/* Selected Files Count */
+.selected-files-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    margin: 10px 0 2px 0;
+    text-shadow: 0 0 8px var(--primary-glow);
+}
+
+/* Animated Progress Bar */
+.progress-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+}
+
+.progress-bar-wrapper {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--secondary) 0%, var(--primary) 100%);
+    box-shadow: 0 0 12px var(--primary-glow);
+    border-radius: 4px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Premium Segmented Switcher Controls */
+.segment-control {
+    display: inline-flex;
+    padding: 4px;
+    gap: 4px;
+    border-radius: 12px;
+    background: rgba(16, 20, 38, 0.4);
+    border: 1px solid var(--border-card);
+    width: fit-content;
+    margin-bottom: 8px;
+}
+
+.segment-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.segment-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.segment-btn.active {
+    background: var(--primary);
+    color: var(--bg-main);
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* Original Scientific Matplotlib Plots Grid */
+.original-plots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 24px;
+}
+
+.original-plot-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.original-plot-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    background: #fff; /* Matplotlib exports white backgrounds by default */
+}
+
+/* Pipeline stages tracker progress */
+.stages-tracker-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    background: rgba(16, 20, 38, 0.2);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    width: fit-content;
+}
+
+.tracker-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.stages-pills {
+    display: flex;
+    gap: 8px;
+}
+
+.stage-pill {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.stage-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.stage-pill.active {
+    background: rgba(0, 240, 255, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+/* Navigation Tabs Styling */
+.app-nav {
+    display: flex;
+    gap: 16px;
+    margin-left: 40px;
+}
+
+.nav-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.nav-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab.active {
+    color: var(--primary);
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+/* Icon Browser Panel */
+.icon-browser-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+}
+
+.icon-browser-header {
+    margin-bottom: 24px;
+}
+
+.icon-browser-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.icon-browser-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.icon-search-wrapper {
+    position: relative;
+    margin-top: 16px;
+    max-width: 480px;
+}
+
+.icon-search-wrapper .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    width: 18px;
+    height: 18px;
+}
+
+.icon-search-wrapper input {
+    width: 100%;
+    padding: 12px 16px 12px 42px;
+    background: rgba(16, 20, 38, 0.5);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.icon-search-wrapper input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 16px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+/* Custom Scrollbar for Icon Grid */
+.icon-grid::-webkit-scrollbar {
+    width: 6px;
+}
+.icon-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius);
+}
+.icon-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius);
+}
+
+.icon-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+}
+
+.icon-card:hover {
+    background: rgba(0, 240, 255, 0.05);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 240, 255, 0.1);
+}
+
+.icon-card i {
+    width: 24px;
+    height: 24px;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.icon-card:hover i {
+    color: var(--primary);
+}
+
+.icon-card span {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Elegant floating toast notification */
+.toast-notice {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: rgba(16, 20, 38, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.25);
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 9999;
+    animation: slideUp 0.3s ease-out, fadeOut 0.3s ease-in 2.2s forwards;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    to { opacity: 0; transform: translateY(-10px); }
+}
+
+
+

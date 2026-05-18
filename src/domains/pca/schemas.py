@@ -55,4 +55,5 @@ class PipelineResponse(BaseModel):
     samples_count: int
     wavelengths_count: int
     plots: Dict[str, Any]
+    original_plots: Optional[Dict[str, str]] = None
     error: Optional[str] = None

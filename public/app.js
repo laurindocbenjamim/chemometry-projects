@@ -1,3 +1,6 @@
+// Configure Axios global defaults to include HttpOnly session cookies
+axios.defaults.withCredentials = true;
+
 // State management
 let uploadedFiles = [];
 let currentOriginalPlots = {};

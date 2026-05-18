@@ -916,6 +916,24 @@ button {
     margin-bottom: 8px;
 }
 
+/* App Footer Styling */
+.app-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    margin-top: 32px;
+    border-top: 1px solid var(--border-card);
+    background: rgba(10, 12, 22, 0.5);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.app-footer p {
+    margin: 0;
+}
+
 
 
 

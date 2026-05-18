@@ -37,6 +37,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 2.5 Automated Secure HttpOnly Session Token Middleware
+import uuid
+@app.middleware("http")
+async def session_cookie_middleware(request, call_next):
+    session_token = request.cookies.get("session_token")
+    response = await call_next(request)
+    if not session_token:
+        # Set HttpOnly, SameSite=Lax session token for state verification
+        response.set_cookie(
+            key="session_token",
+            value=str(uuid.uuid4()),
+            httponly=True,
+            samesite="lax",
+            secure=False  # Set to True in production (HTTPS)
+        )
+    return response
+
 # 3. Global Exception Handler for clean JSON response
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):

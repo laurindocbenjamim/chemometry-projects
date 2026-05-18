@@ -1,5 +1,5 @@
 import html
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException, status
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException, status, Cookie
 from typing import List
 from pydantic import ValidationError
 
@@ -14,12 +14,19 @@ async def process_files(
     config: str = Form(
         '{"algorithm": "PCA", "format": "auto", "preprocessing": {"snv": true, "sg_filter": true, "sg_window_length": 15, "sg_polyorder": 2, "sg_deriv": 0, "mean_center": true}}',
         description="JSON string of the pipeline configuration"
-    )
+    ),
+    session_token: str = Cookie(None)
 ):
     """
     Accepts multiple file uploads (.csv or .sp format), validates and sanitizes them,
     auto-detects the format, and runs the selected chemometrics algorithm (PCA, PLS, or RAMAN).
+    Requires active session_token.
     """
+    if not session_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired or invalid. Please reload the page."
+        )
     # 1. Parse and validate configuration
     try:
         request_config = PipelineRequest.model_validate_json(config)

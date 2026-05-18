@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     
     # GROQ & AI Llama Configuration (Pydantic automatically loads these from .env)
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    LLMMODEL: str = os.getenv("LLMMODEL", "llama-3.2-11b-vision-preview")
+    LLMMODEL: str = os.getenv("LLMMODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
     LLMPROVIDER: str = os.getenv("LLMPROVIDER", "groq")
 
     class Config:

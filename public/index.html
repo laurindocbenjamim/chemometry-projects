@@ -39,7 +39,10 @@
             <form id="pipeline-form">
                 <!-- Algorithm Selection -->
                 <div class="input-group">
-                    <label for="algorithm">Target Algorithm</label>
+                    <label for="algorithm">
+                        Target Algorithm
+                        <span class="info-tooltip" data-tooltip="PCA finds principal components to reduce dimensionality. PLS finds latent variables that maximize covariance between X and Y (requires class labels in filenames). RAMAN applies ALS baseline correction for Raman spectra."><i data-lucide="info"></i></span>
+                    </label>
                     <select id="algorithm">
                         <option value="PCA" selected>PCA (Principal Component Analysis)</option>
                         <option value="PLS">PLS (Partial Least Squares)</option>
@@ -49,7 +52,10 @@
 
                 <!-- Explicit File Format Selection -->
                 <div class="input-group">
-                    <label for="file-format">Expected File Format</label>
+                    <label for="file-format">
+                        Expected File Format
+                        <span class="info-tooltip" data-tooltip="Auto-detect attempts to identify the file format automatically. Choose .sp for PerkinElmer binary files, or .csv for columnar ASCII data."><i data-lucide="info"></i></span>
+                    </label>
                     <select id="file-format">
                         <option value="auto" selected>Auto-Detect Format</option>
                         <option value="sp">PerkinElmer (.sp binary)</option>
@@ -65,7 +71,7 @@
                     <label class="switch-container">
                         <input type="checkbox" id="snv" checked>
                         <span class="switch-slider"></span>
-                        <span class="switch-label">Apply SNV Standardisation</span>
+                        <span class="switch-label">Apply SNV Standardisation <span class="info-tooltip" data-tooltip="Standard Normal Variate (SNV) corrects for scatter effects by normalizing each spectrum to zero mean and unit variance."><i data-lucide="info"></i></span></span>
                     </label>
                 </div>
 
@@ -73,7 +79,7 @@
                     <label class="switch-container">
                         <input type="checkbox" id="mean-center" checked>
                         <span class="switch-slider"></span>
-                        <span class="switch-label">Mean Centering</span>
+                        <span class="switch-label">Mean Centering <span class="info-tooltip" data-tooltip="Subtracts the mean of each variable from its column, centering data around the origin to improve model interpretation."><i data-lucide="info"></i></span></span>
                     </label>
                 </div>
 
@@ -81,22 +87,31 @@
                     <label class="switch-container">
                         <input type="checkbox" id="sg-filter" checked>
                         <span class="switch-slider"></span>
-                        <span class="switch-label">Savitzky-Golay Filtering</span>
+                        <span class="switch-label">Savitzky-Golay Filtering <span class="info-tooltip" data-tooltip="Smoothing filter that fits successive sub-sets of adjacent points with a low-degree polynomial. Also used for derivatives."><i data-lucide="info"></i></span></span>
                     </label>
                 </div>
 
                 <!-- SG Nested Options -->
                 <div id="sg-options" class="nested-options-panel">
                     <div class="input-group">
-                        <label for="sg-window">SG Window Length (Odd)</label>
+                        <label for="sg-window">
+                            SG Window Length (Odd)
+                            <span class="info-tooltip" data-tooltip="Number of data points in the moving window. Must be odd. Larger values produce smoother results but may lose important features."><i data-lucide="info"></i></span>
+                        </label>
                         <input type="number" id="sg-window" value="15" min="3" step="2">
                     </div>
                     <div class="input-group">
-                        <label for="sg-poly">SG Polynomial Order</label>
+                        <label for="sg-poly">
+                            SG Polynomial Order
+                            <span class="info-tooltip" data-tooltip="Degree of polynomial used for local fitting. Must be less than window length. Higher orders capture more complex patterns but risk overfitting."><i data-lucide="info"></i></span>
+                        </label>
                         <input type="number" id="sg-poly" value="2" min="1">
                     </div>
                     <div class="input-group">
-                        <label for="sg-deriv">SG Derivative Order</label>
+                        <label for="sg-deriv">
+                            SG Derivative Order
+                            <span class="info-tooltip" data-tooltip="Order of derivative. 0 = smoothing only, 1 = first derivative (peak resolution), 2 = second derivative (baseline detection)."><i data-lucide="info"></i></span>
+                        </label>
                         <select id="sg-deriv">
                             <option value="0" selected>0 - Smoothing</option>
                             <option value="1">1 - First Derivative</option>

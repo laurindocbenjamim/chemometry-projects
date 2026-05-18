@@ -1,0 +1,29 @@
+# Exclude git repository details
+.git
+.gitignore
+
+# Exclude python caches and build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+.failed_cells
+
+# Exclude local environment files
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# Exclude local editor configurations
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Exclude generated analytics spreadsheets
+*.xlsx
+output_excel/

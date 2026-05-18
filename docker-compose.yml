@@ -1,0 +1,20 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spectralab-web
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - ALLOWED_ORIGINS=["*"]
+      # Add Sentry DSN here in future if needed
+      # - SENTRY_DSN=your_dsn_here
+    volumes:
+      # Optional: Bind-mount workspace for dynamic hot-reloads during active development
+      - .:/app
+      # Exclude node_modules or env caches inside container from being overwritten
+      - /app/.venv
+      - /app/__pycache__
+    restart: unless-stopped

@@ -5,6 +5,21 @@ SpectraLab is a high-performance, modular monolithic web application built for c
 > [!NOTE]
 > Designed as a **Modular Monolith (Bounded Contexts)** to keep logic highly segregated, easily maintainable, and completely ready for future microservice extractions.
 
+## 📊 Pipeline Architecture & Data Flow
+
+```mermaid
+graph TD
+    UI[Frontend Dashboard HTML/CSS/JS] -->|Upload Files + Config| API[FastAPI Gateway]
+    API -->|Validate & Sanitize| Val[Validation Layer]
+    Val -->|Route to Context| PCA[PCA Domain Service]
+    PCA -->|Format Detector| Det[Format Detector]
+    Det -->|Parse SP| SP[SP Parser]
+    Det -->|Parse CSV| CSV[CSV Parser]
+    PCA -->|Pipeline: SNV, SG, MC, PCA/PLS/RAMAN| Engine[Chemometrics Engine]
+    Engine -->|Compute Metrics| Out[T2, Q, Loadings, Scree, Scores]
+    Out -->|JSON Response| UI
+```
+
 ---
 
 ## 🏛️ Project Directory Structure
@@ -82,6 +97,43 @@ Or run directly via Uvicorn CLI:
 uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 Navigate to **`http://localhost:8000`** inside your web browser.
+
+---
+
+## 🐳 Running with Docker
+
+To containerize and deploy SpectraLab, you can use either Docker Compose (recommended for development) or plain Docker commands:
+
+### Method A: Docker Compose (Recommended)
+Docker Compose automatically builds the environment and mounts your local files so that backend/frontend changes hot-reload immediately:
+
+#### 1. Start the Container
+```bash
+docker compose up -d --build
+```
+
+#### 2. Stop the Container
+```bash
+docker compose down
+```
+
+---
+
+### Method B: Plain Docker CLI (Alternative)
+
+#### 1. Build the Image
+```bash
+docker build -t spectralab:latest .
+```
+
+#### 2. Run the Container
+```bash
+docker run -d -p 8000:8000 --name spectralab-container spectralab:latest
+```
+
+- Access the running app at **`http://localhost:8000`**
+- Check container health status: `docker ps` (uses built-in `/docs` API healthchecks).
+- Inspect logs: `docker logs spectralab-container`
 
 ---
 

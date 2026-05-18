@@ -920,6 +920,206 @@ button {
     margin-bottom: 8px;
 }
 
+/* AI Diagnostics Header with flex layout */
+.ai-diagnosis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+}
+
+/* Chat Q&A interface inside plot diagnostics */
+.ai-qa-section {
+    margin-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 16px;
+}
+
+.ai-qa-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+    text-shadow: 0 0 6px var(--primary-glow);
+}
+
+.ai-qa-input-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.ai-qa-input {
+    flex-grow: 1;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 10px 14px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    outline: none;
+    transition: var(--transition);
+}
+
+.ai-qa-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.ai-qa-response-box {
+    margin-top: 14px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    padding: 12px 14px;
+    animation: slideUp 0.3s ease-out;
+}
+
+.ai-qa-answer-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 6px;
+}
+
+.ai-qa-answer-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.ai-qa-answer-text h3 {
+    margin-top: 8px;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.ai-qa-answer-text ul {
+    margin-left: 14px;
+    margin-bottom: 6px;
+}
+
+/* Export Dropdown Menu */
+.export-plots-dropdown {
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background: rgba(13, 20, 38, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-card);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    min-width: 180px;
+    animation: dropdownSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.export-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    padding: 10px 14px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: var(--transition);
+}
+
+.export-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--primary);
+    text-shadow: 0 0 6px var(--primary-glow);
+}
+
+.export-dropdown-item i {
+    width: 14px;
+    height: 14px;
+}
+
+/* Micro-animations */
+@keyframes dropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.export-plots-dropdown.fade-out {
+    animation: dropdownSlideOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dropdownSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+}
+
+/* Q&A Interactive Thread styling */
+.chat-history-block {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: dropdownSlideIn 0.3s ease;
+}
+
+.chat-user-msg {
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 500;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.chat-ai-msg {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.chat-sender {
+    font-weight: 600;
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 4px;
+}
+
+.pulse-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 /* App Footer Styling */
 .app-footer {
     display: flex;

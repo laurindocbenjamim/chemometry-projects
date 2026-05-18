@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     LLMMODEL: str = os.getenv("LLMMODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
     LLMPROVIDER: str = os.getenv("LLMPROVIDER", "groq")
 
+    # Upstash Redis REST Config
+    UPSTASH_REDIS_REST_URL: str = os.getenv("UPSTASH_REDIS_REST_URL", "")
+    UPSTASH_REDIS_REST_TOKEN: str = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
+
     class Config:
         env_file = ".env"
         extra = "ignore"

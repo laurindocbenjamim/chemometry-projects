@@ -43,17 +43,37 @@ def run_pca_stage(X_orig: np.ndarray, X_stage: np.ndarray, wl_list: list, sample
     var_ratio = pca.explained_variance_ratio_.tolist()
     loadings = pca.components_.T
     eigenvalues = pca.explained_variance_
-    T2 = np.sum((X_pca ** 2) / eigenvalues, axis=1).tolist()
+    T2_arr = np.sum((X_pca ** 2) / eigenvalues, axis=1)
     X_recon = pca.inverse_transform(X_pca)
-    Q = np.sum((X_stage - X_recon) ** 2, axis=1).tolist()
+    Q_arr = np.sum((X_stage - X_recon) ** 2, axis=1)
+
+    # Calculate exact control limits matching the original research script
+    n = X_stage.shape[0]
+    p = 2
+    from scipy.stats import f as f_dist
+    alpha = 0.05
+    try:
+        F_critical = f_dist.ppf(1 - alpha, p, n - p)
+        T2_limit = (n - 1) * p / (n - p) * F_critical
+    except Exception:
+        T2_limit = 0.0
+    Q_limit = float(np.percentile(Q_arr, 95))
 
     plots = {
         "scree": {"labels": ["PC1", "PC2"], "variance": var_ratio},
         "scores": [{"name": sample_names[i], "class": classes[i], "pc1": X_pca[i, 0], "pc2": X_pca[i, 1]} for i in range(len(sample_names))],
         "loadings": {"wavelengths": wl_list, "pc1": loadings[:, 0].tolist(), "pc2": loadings[:, 1].tolist()},
-        "residuals": [{"name": sample_names[i], "class": classes[i], "t2": T2[i], "q": Q[i]} for i in range(len(sample_names))]
+        "residuals": [{"name": sample_names[i], "class": classes[i], "t2": float(T2_arr[i]), "q": float(Q_arr[i])} for i in range(len(sample_names))]
     }
-    extra = {"X_pca": X_pca, "var_ratio": var_ratio, "loadings": loadings}
+    extra = {
+        "X_pca": X_pca,
+        "var_ratio": var_ratio,
+        "loadings": loadings,
+        "T2": T2_arr,
+        "Q": Q_arr,
+        "T2_limit": T2_limit,
+        "Q_limit": Q_limit
+    }
     orig_plots = generate_matplotlib_plots("PCA", X_orig, X_stage, wl_list, sample_names, classes, extra)
     return {"plots": plots, "original_plots": orig_plots}
 

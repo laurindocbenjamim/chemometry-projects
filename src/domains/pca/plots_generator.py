@@ -96,6 +96,31 @@ def _generate_pca_plots(images: dict, extra: dict, unique_classes: list, classes
     except Exception:
         pass
 
+    # T2 vs Q Residuals Plot
+    try:
+        T2 = extra.get("T2")
+        Q = extra.get("Q")
+        T2_limit = extra.get("T2_limit", 0)
+        Q_limit = extra.get("Q_limit", 0)
+        if T2 is not None and Q is not None:
+            fig, ax = plt.subplots(figsize=(8, 5))
+            for cls in unique_classes:
+                idx = [i for i, c in enumerate(classes) if c == cls]
+                ax.scatter(T2[idx], Q[idx], label=f"Class {cls}", s=50, color=color_map[cls])
+            if T2_limit > 0:
+                ax.axvline(x=T2_limit, color="red", linestyle="--", alpha=0.7, label=f"T² 95% limit ({T2_limit:.2f})")
+            if Q_limit > 0:
+                ax.axhline(y=Q_limit, color="blue", linestyle="--", alpha=0.7, label=f"Q 95% limit ({Q_limit:.2f})")
+            ax.set_title("Hotelling's T² vs Q Residuals Plot")
+            ax.set_xlabel("Hotelling's T²")
+            ax.set_ylabel("Q Residuals")
+            ax.legend()
+            ax.grid(True, linestyle="--", alpha=0.5)
+            fig.tight_layout()
+            images["residuals"] = _fig_to_base64(fig)
+    except Exception:
+        pass
+
     # PCA Heatmap by class and replicate (legacy feature!)
     try:
         df_scores = pd.DataFrame({"label": classes, "PCA1": X_pca[:, 0]})

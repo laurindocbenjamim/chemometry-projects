@@ -16,17 +16,18 @@ def analyze_plot_with_groq(image_base64: str, plot_type: str, context: str) -> s
         
     provider = settings.LLMPROVIDER.lower() if settings.LLMPROVIDER else "groq"
 
-    # Construct the scientific analysis prompt
+    # Construct the scientific analysis prompt emphasizing context-driven diagnosis
     prompt_text = (
-        f"You are an expert chemometrician and data scientist analyzing a Spectroscopy/Chemometrics chart.\n"
-        f"Plot Type: {plot_type}\n"
-        f"Context of the Study (provided by researcher):\n"
-        f"{context if context else 'No context provided.'}\n\n"
-        f"Provide a concise, professional, and visually clear summary explaining:\n"
-        f"1. What this specific plot represents in the chemometric workflow.\n"
-        f"2. The key insights, patterns, groupings, or anomalies observable in this plot.\n"
-        f"3. Recommendations or actions for subsequent processing.\n\n"
-        f"Format your response using bold markdown headers and neat bullet points. Keep it highly factual, clear, and actionable. Limit to 3 short paragraphs."
+        f"You are an expert chemometrician, spectroscopist, and data scientist.\n"
+        f"You are analyzing a Spectroscopy/Chemometrics chart: {plot_type}.\n\n"
+        f"CRITICAL RESEARCH CONTEXT (provided by the researcher for this study):\n"
+        f"{context if context else 'No study context provided.'}\n\n"
+        f"TASK:\n"
+        f"Provide a concise, professional, and visually rigorous summary that directly connects the visual findings of this plot to the researcher's study context (interpret clusters, peak alignments, baseline shifts, residuals, or variance levels in light of their experimental samples, objectives, and parameters). Explain:\n"
+        f"1. What this plot represents in their chemometric workflow and study.\n"
+        f"2. The key insights, patterns, groupings, or anomalies observable, explicitly correlating them with the researcher's study variables or samples.\n"
+        f"3. Practical recommendations or next analytical steps tailored to their objectives.\n\n"
+        f"Format your response using bold markdown headers and bullet points. Keep it highly factual, clear, actionable, and deeply customized to their study. Limit to 3 short paragraphs."
     )
 
     if provider == "ollama":

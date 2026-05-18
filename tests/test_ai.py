@@ -64,3 +64,70 @@ def test_analyze_plot_success(mock_analyze):
         plot_type="Scores Plot",
         context="Analyzing sample separation."
     )
+
+def test_ask_question_unauthorized():
+    """Verify that a 401 error is returned for /ai/ask-question when session cookie is absent."""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from src.domains.ai.router import router as test_router
+    
+    isolated_app = FastAPI()
+    isolated_app.include_router(test_router)
+    isolated_client = TestClient(isolated_app)
+    
+    response = isolated_client.post("/ai/ask-question", json={
+        "plot_type": "Scores Plot",
+        "question": "Why are there outliers?"
+    })
+    assert response.status_code == 401
+    assert "Session expired or invalid" in response.json()["detail"]
+
+@patch("src.domains.ai.router.answer_question_with_rag")
+def test_ask_question_success(mock_answer):
+    """Verify successful mock responses for /ai/ask-question endpoint."""
+    mock_answer.return_value = "Outliers are present due to SNV offsets."
+    
+    response = client.post(
+        "/ai/ask-question",
+        json={
+            "plot_type": "Scores Plot",
+            "question": "Why are there outliers?"
+        },
+        cookies={"session_token": "active-test-session"}
+    )
+    
+    assert response.status_code == 200
+    res_data = response.json()
+    assert res_data["success"] is True
+    assert "Outliers are present" in res_data["answer"]
+    mock_answer.assert_called_once_with(
+        session_token="active-test-session",
+        plot_type="Scores Plot",
+        question="Why are there outliers?"
+    )
+
+def test_redis_memory_manager_fallback():
+    """Verify that RedisMemoryManager handles storage/retrieval via fallback if URL is empty."""
+    from src.domains.ai.memory import RedisMemoryManager
+    
+    # Instantiate custom manager with no Redis URL to trigger fallback
+    manager = RedisMemoryManager(override_url="")
+    
+    session = "test-session-token"
+    pt = "Scree Plot"
+    analysis = "Mock Scree analysis showing variance."
+    ctx = "Researching baseline values."
+    
+    # Save, register, and retrieve
+    manager.save_plot_analysis(session, pt, analysis, ctx)
+    manager.register_plot_in_session(session, pt)
+    
+    data = manager.get_plot_analysis(session, pt)
+    assert data["plot_type"] == pt
+    assert data["analysis"] == analysis
+    assert data["context"] == ctx
+    
+    session_ctx = manager.get_session_context(session)
+    assert "Scree Plot" in session_ctx
+    assert "Mock Scree analysis" in session_ctx
+

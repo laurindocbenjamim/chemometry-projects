@@ -12,3 +12,5 @@ pydantic
 pydantic-settings
 sentry-sdk
 python-multipart
+reportlab
+pillow

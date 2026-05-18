@@ -4,6 +4,8 @@ axios.defaults.withCredentials = true;
 // State management
 let uploadedFiles = [];
 let currentOriginalPlots = {};
+let currentDiagnoses = {};
+let currentPipelineData = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
@@ -148,23 +150,154 @@ function setupVisualizationSwitchers() {
         renderOriginalPlotsList();
     });
 
-    // Download All Plots Event
-    btnDownloadAll.addEventListener("click", () => {
+    // Download All Plots Event (Triggers clean selection between Images ZIP and Report PDF)
+    btnDownloadAll.addEventListener("click", (e) => {
+        e.stopPropagation();
         const keys = Object.keys(currentOriginalPlots);
         if (keys.length === 0) {
             showToast("No original plots available for download.");
             return;
         }
-        keys.forEach((key, idx) => {
-            setTimeout(() => {
-                downloadSinglePlot(currentOriginalPlots[key], `${key}_plot.png`);
-            }, idx * 300);
+
+        // Toggle existing selection dropdown if already visible
+        const existingDropdown = document.getElementById("export-plots-dropdown");
+        if (existingDropdown) {
+            existingDropdown.classList.add("fade-out");
+            setTimeout(() => existingDropdown.remove(), 200);
+            return;
+        }
+
+        // Create styled floating context selection menu
+        const dropdown = document.createElement("div");
+        dropdown.id = "export-plots-dropdown";
+        dropdown.className = "export-plots-dropdown glass-card fade-in";
+        
+        dropdown.innerHTML = `
+            <button class="export-dropdown-item" id="export-zip-btn">
+                <i data-lucide="archive"></i> Download Images (ZIP)
+            </button>
+            <button class="export-dropdown-item" id="export-pdf-btn">
+                <i data-lucide="file-text"></i> Download Report (PDF)
+            </button>
+        `;
+
+        // Position dropdown perfectly underneath the trigger button
+        const rect = btnDownloadAll.getBoundingClientRect();
+        dropdown.style.position = "absolute";
+        dropdown.style.top = `${window.scrollY + rect.bottom + 8}px`;
+        dropdown.style.left = `${window.scrollX + rect.left}px`;
+        dropdown.style.minWidth = `${rect.width}px`;
+        dropdown.style.zIndex = "1000";
+
+        document.body.appendChild(dropdown);
+        lucide.createIcons();
+
+        // Safe self-closing handle when user clicks away
+        const closeDropdown = (event) => {
+            const el = document.getElementById("export-plots-dropdown");
+            if (el && !el.contains(event.target) && event.target !== btnDownloadAll) {
+                el.classList.add("fade-out");
+                setTimeout(() => el.remove(), 200);
+                document.removeEventListener("click", closeDropdown);
+            }
+        };
+        setTimeout(() => {
+            document.addEventListener("click", closeDropdown);
+        }, 0);
+
+        // ZIP Exporter Callback
+        document.getElementById("export-zip-btn").addEventListener("click", () => {
+            showToast("Packaging all original plots into ZIP archive...");
+            
+            let plotsToExport = {};
+            if (currentPipelineData && currentPipelineData.plots && currentPipelineData.plots.multi_stage) {
+                const stageLabels = {
+                    raw: "Raw",
+                    snv: "SNV",
+                    sg: "Savgol",
+                    mc: "MeanCentered"
+                };
+                currentPipelineData.plots.active_stages.forEach(stageKey => {
+                    const stageObj = currentPipelineData.plots.stages[stageKey];
+                    if (stageObj && stageObj.original_plots) {
+                        const labelPrefix = stageLabels[stageKey] || stageKey.toUpperCase();
+                        Object.entries(stageObj.original_plots).forEach(([key, base64Str]) => {
+                            const capitalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                            plotsToExport[`${labelPrefix} ${capitalizedKey}`] = base64Str;
+                        });
+                    }
+                });
+            } else {
+                plotsToExport = currentOriginalPlots;
+            }
+
+            axios.post("/ai/export-zip", {
+                plots: plotsToExport
+            }, {
+                responseType: "blob"
+            })
+            .then(res => {
+                const blob = new Blob([res.data], { type: "application/zip" });
+                const link = document.createElement("a");
+                link.href = window.URL.createObjectURL(blob);
+                link.download = "spectroscopy_plots.zip";
+                link.click();
+                showToast("ZIP download started successfully!");
+            })
+            .catch(err => {
+                showToast("Failed to compile ZIP: " + err.message);
+            });
         });
-        showToast(`Initiating downloads for all ${keys.length} plots...`);
+
+        // PDF Exporter Callback
+        document.getElementById("export-pdf-btn").addEventListener("click", () => {
+            showToast("Generating comprehensive scientific diagnostics report (PDF)...");
+            
+            let plotsToExport = {};
+            if (currentPipelineData && currentPipelineData.plots && currentPipelineData.plots.multi_stage) {
+                const stageLabels = {
+                    raw: "Raw",
+                    snv: "SNV",
+                    sg: "Savgol",
+                    mc: "MeanCentered"
+                };
+                currentPipelineData.plots.active_stages.forEach(stageKey => {
+                    const stageObj = currentPipelineData.plots.stages[stageKey];
+                    if (stageObj && stageObj.original_plots) {
+                        const labelPrefix = stageLabels[stageKey] || stageKey.toUpperCase();
+                        Object.entries(stageObj.original_plots).forEach(([key, base64Str]) => {
+                            const capitalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                            plotsToExport[`${labelPrefix} ${capitalizedKey}`] = base64Str;
+                        });
+                    }
+                });
+            } else {
+                plotsToExport = currentOriginalPlots;
+            }
+
+            axios.post("/ai/export-pdf", {
+                plots: plotsToExport,
+                diagnoses: currentDiagnoses
+            }, {
+                responseType: "blob"
+            })
+            .then(res => {
+                const blob = new Blob([res.data], { type: "application/pdf" });
+                const link = document.createElement("a");
+                link.href = window.URL.createObjectURL(blob);
+                link.download = "spectroscopy_scientific_report.pdf";
+                link.click();
+                showToast("PDF report downloaded successfully!");
+            })
+            .catch(err => {
+                showToast("Failed to compile scientific report PDF. Make sure reportlab and pillow are installed.");
+            });
+        });
     });
 
     btnReset.addEventListener("click", () => {
         uploadedFiles = [];
+        currentPipelineData = null;
         const uploader = document.getElementById("upload-zone");
         const existingList = uploader.querySelector(".file-list-preview");
         if (existingList) existingList.remove();
@@ -182,6 +315,7 @@ function setupVisualizationSwitchers() {
         Object.values(window.chartInstances).forEach(chart => chart.destroy());
         window.chartInstances = {};
         currentOriginalPlots = {};
+        currentDiagnoses = {};
         
         document.getElementById("dashboard-content").style.display = "none";
         document.getElementById("empty-state").style.display = "flex";
@@ -288,6 +422,7 @@ function executePipeline() {
 }
 
 function renderDashboard(data) {
+    currentPipelineData = data;
     document.getElementById("empty-state").style.display = "none";
     const dashboard = document.getElementById("dashboard-content");
     dashboard.style.display = "block";
@@ -443,7 +578,7 @@ function executeVisionAiAnalysis(base64Str, plotType, container, button) {
 
     container.style.display = "block";
     container.innerHTML = `
-        <div class="ai-diagnosis-container">
+        <div class="ai-diagnosis-container glass-card">
             <div class="ai-diagnosis-title">
                 <i data-lucide="bot"></i> AI Scientific Diagnostics
             </div>
@@ -465,19 +600,146 @@ function executeVisionAiAnalysis(base64Str, plotType, container, button) {
         lucide.createIcons();
 
         if (response.data.success) {
-            // Render beautiful markdown style formatting
+            const rawAnalysis = response.data.analysis;
+            currentDiagnoses[plotType] = rawAnalysis;
+            
+            // Render beautiful diagnostic panel with header actions & interactive Q&A
             container.innerHTML = `
-                <div class="ai-diagnosis-container">
-                    <div class="ai-diagnosis-title">
-                        <i data-lucide="bot"></i> AI Scientific Diagnostics
+                <div class="ai-diagnosis-container glass-card">
+                    <div class="ai-diagnosis-header">
+                        <div class="ai-diagnosis-title">
+                            <i data-lucide="bot"></i> AI Scientific Diagnostics
+                        </div>
+                        <button class="original-plot-btn copy-btn" style="padding: 4px 10px; font-size: 11px;">
+                            <i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy
+                        </button>
                     </div>
-                    <div class="ai-diagnosis-content">${formatMarkdownResponse(response.data.analysis)}</div>
+                    <div class="ai-diagnosis-content">${formatMarkdownResponse(rawAnalysis)}</div>
+                    
+                    <!-- Q&A Interactive Thread -->
+                    <div class="ai-qa-section">
+                        <div class="ai-qa-header">
+                            <i data-lucide="message-square"></i> Ask a question about this plot
+                        </div>
+                        <div class="ai-qa-response-box" style="display: none;"></div>
+                        <div class="ai-qa-input-wrapper">
+                            <input type="text" class="ai-qa-input" placeholder="Ask a question about this specific ${plotType}...">
+                            <button class="original-plot-btn primary ask-btn" style="padding: 8px 14px;">
+                                <i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
             lucide.createIcons();
+
+            // Bind Copy Button Handler
+            const copyBtn = container.querySelector(".copy-btn");
+            copyBtn.addEventListener("click", () => {
+                navigator.clipboard.writeText(rawAnalysis)
+                    .then(() => {
+                        copyBtn.innerHTML = `<i data-lucide="check" style="color: var(--success); width: 12px; height: 12px;"></i> Copied!`;
+                        lucide.createIcons();
+                        showToast("Diagnostics copied to clipboard!");
+                        setTimeout(() => {
+                            copyBtn.innerHTML = `<i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy`;
+                            lucide.createIcons();
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        showToast("Failed to copy text.");
+                    });
+            });
+
+            // Bind Q&A Submit Handlers
+            const qaInput = container.querySelector(".ai-qa-input");
+            const askBtn = container.querySelector(".ask-btn");
+            const responseBox = container.querySelector(".ai-qa-response-box");
+
+            const submitQuestion = () => {
+                const questionText = qaInput.value.trim();
+                if (!questionText) return;
+
+                // Disable input during request
+                qaInput.disabled = true;
+                askBtn.disabled = true;
+                askBtn.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width: 12px; height: 12px;"></i> Asking...`;
+                lucide.createIcons();
+
+                // Append interactive block containing user query and active loader placeholder
+                const chatBlock = document.createElement("div");
+                chatBlock.className = "chat-history-block";
+                chatBlock.innerHTML = `
+                    <div class="chat-user-msg">
+                        <span class="chat-sender">You:</span> ${questionText}
+                    </div>
+                    <div class="chat-ai-msg loading-msg">
+                        <span class="chat-sender"><i data-lucide="sparkles" style="width: 12px; height: 12px; color: var(--primary);"></i> AI Response:</span>
+                        <span class="pulse-loading" style="color: var(--text-secondary);">
+                            <span class="pulse-dot"></span> Consulting RAG and formulating analysis...
+                        </span>
+                    </div>
+                `;
+                responseBox.appendChild(chatBlock);
+                responseBox.style.display = "block";
+                lucide.createIcons();
+
+                // Clear input box immediately so researcher can type their next query
+                qaInput.value = "";
+
+                axios.post("/ai/ask-question", {
+                    plot_type: plotType,
+                    question: questionText
+                })
+                .then(qaRes => {
+                    qaInput.disabled = false;
+                    askBtn.disabled = false;
+                    askBtn.innerHTML = `<i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask`;
+                    lucide.createIcons();
+
+                    const aiMsgElement = chatBlock.querySelector(".chat-ai-msg");
+                    aiMsgElement.classList.remove("loading-msg");
+
+                    if (qaRes.data.success) {
+                        aiMsgElement.innerHTML = `
+                            <span class="chat-sender"><i data-lucide="sparkles" style="width: 12px; height: 12px; color: var(--primary);"></i> AI Response:</span>
+                            <div class="ai-qa-answer-text">${formatMarkdownResponse(qaRes.data.answer)}</div>
+                        `;
+                        lucide.createIcons();
+                    } else {
+                        aiMsgElement.innerHTML = `
+                            <span class="chat-sender" style="color: var(--danger);"><i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> AI Error:</span>
+                            <div class="ai-qa-answer-text" style="color: var(--danger);">${qaRes.data.error || "Failed to formulate response."}</div>
+                        `;
+                        lucide.createIcons();
+                    }
+                })
+                .catch(err => {
+                    qaInput.disabled = false;
+                    askBtn.disabled = false;
+                    askBtn.innerHTML = `<i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask`;
+                    lucide.createIcons();
+
+                    const aiMsgElement = chatBlock.querySelector(".chat-ai-msg");
+                    aiMsgElement.classList.remove("loading-msg");
+                    aiMsgElement.innerHTML = `
+                        <span class="chat-sender" style="color: var(--danger);"><i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> Connection Error:</span>
+                        <div class="ai-qa-answer-text" style="color: var(--danger);">${err.message}</div>
+                    `;
+                    lucide.createIcons();
+                });
+            };
+
+            askBtn.addEventListener("click", submitQuestion);
+            qaInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    submitQuestion();
+                }
+            });
+
         } else {
             container.innerHTML = `
-                <div class="ai-diagnosis-container" style="border-left-color: #ff3b30;">
+                <div class="ai-diagnosis-container glass-card" style="border-left-color: #ff3b30;">
                     <div class="ai-diagnosis-title" style="color: #ff3b30;">
                         <i data-lucide="alert-triangle"></i> Diagnostics Failed
                     </div>
@@ -493,7 +755,7 @@ function executeVisionAiAnalysis(base64Str, plotType, container, button) {
         lucide.createIcons();
 
         container.innerHTML = `
-            <div class="ai-diagnosis-container" style="border-left-color: #ff3b30;">
+            <div class="ai-diagnosis-container glass-card" style="border-left-color: #ff3b30;">
                 <div class="ai-diagnosis-title" style="color: #ff3b30;">
                     <i data-lucide="alert-triangle"></i> Connection Error
                 </div>
@@ -505,8 +767,13 @@ function executeVisionAiAnalysis(base64Str, plotType, container, button) {
 }
 
 function formatMarkdownResponse(text) {
+    if (!text) return "";
+    
+    // Clean up excessive decorative separator characters (like ====, ----, _____, »»»»)
+    let cleanedText = text.replace(/[=\-_»~—_]{3,}/g, "");
+
     // Elegant regex mapping for headers and lists to make the output extremely high-fidelity
-    let html = text
+    let html = cleanedText
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/### (.*?)\n/g, '<h3>$1</h3>')
         .replace(/## (.*?)\n/g, '<h3>$1</h3>')

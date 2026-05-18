@@ -645,7 +645,26 @@ function executeVisionAiAnalysis(base64Str, plotType, container, button) {
             // Bind Copy Button Handler
             const copyBtn = container.querySelector(".copy-btn");
             copyBtn.addEventListener("click", () => {
-                navigator.clipboard.writeText(rawAnalysis)
+                let copyPromise;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    copyPromise = navigator.clipboard.writeText(rawAnalysis);
+                } else {
+                    const textarea = document.createElement("textarea");
+                    textarea.value = rawAnalysis;
+                    textarea.style.position = "fixed";
+                    textarea.style.opacity = "0";
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {
+                        document.execCommand("copy");
+                        copyPromise = Promise.resolve();
+                    } catch (e) {
+                        copyPromise = Promise.reject(e);
+                    }
+                    document.body.removeChild(textarea);
+                }
+
+                copyPromise
                     .then(() => {
                         copyBtn.innerHTML = `<i data-lucide="check" style="color: var(--success); width: 12px; height: 12px;"></i> Copied!`;
                         lucide.createIcons();
@@ -656,7 +675,7 @@ function executeVisionAiAnalysis(base64Str, plotType, container, button) {
                         }, 2000);
                     })
                     .catch(err => {
-                        showToast("Failed to copy text.");
+                        showToast("Failed to copy text: " + err);
                     });
             });
 

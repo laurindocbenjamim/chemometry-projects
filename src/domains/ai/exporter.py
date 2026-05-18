@@ -84,6 +84,7 @@ def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, st
         )
 
     pdf_buffer = io.BytesIO()
+    temp_files = []
     # Margins are 0.75 in (54 pt). Page width is 612, printable width is 504 pt.
     doc = SimpleDocTemplate(
         pdf_buffer,
@@ -192,18 +193,25 @@ def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, st
         story.append(Paragraph(f"{plot_type} Analysis Overview", section_style))
         story.append(Spacer(1, 6))
 
-        # Decode base64 image and load using ImageReader (zero disk storage required)
+        # Decode base64 image and write to a temporary file for 100% reliable local filesystem embedding
+        import tempfile
+        import os
+        temp_filename = None
         try:
             if "," in base64_str:
                 base64_str = base64_str.split(",")[1]
             img_data = base64.b64decode(base64_str)
-            img_reader = ImageReader(io.BytesIO(img_data))
             
-            # Embed image with high quality and centered scaling
-            story.append(Image(img_reader, width=410, height=250))
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_f:
+                temp_f.write(img_data)
+                temp_filename = temp_f.name
+            
+            # Embed image from local temp file path
+            story.append(Image(temp_filename, width=410, height=250))
             story.append(Spacer(1, 10))
+            temp_files.append(temp_filename)
         except Exception as e:
-            logger.error(f"Failed to load image reader for {plot_type}: {e}")
+            logger.error(f"Failed to load image for {plot_type}: {e}")
             story.append(Paragraph("<i>[Visual spectroscopy chart failed to embed]</i>", body_style))
             story.append(Spacer(1, 8))
 
@@ -218,6 +226,16 @@ def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, st
         xml_formatted = parse_markdown_to_xml(diag_text)
         story.append(Paragraph(xml_formatted, body_style))
 
-    doc.build(story)
+    try:
+        doc.build(story)
+    finally:
+        # Clean up temporary files immediately
+        for path in temp_files:
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except Exception as e:
+                logger.error(f"Failed to delete temp file {path}: {e}")
+                
     pdf_buffer.seek(0)
     return pdf_buffer

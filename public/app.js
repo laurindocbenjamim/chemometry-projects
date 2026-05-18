@@ -98,7 +98,16 @@ function updateFileBadges() {
     if (uploadedFiles.length === 0) {
         fileCountEl.textContent = "No files selected";
     } else {
-        fileCountEl.textContent = `Total Files Selected: ${uploadedFiles.length}`;
+        const totalBytes = uploadedFiles.reduce((acc, file) => acc + file.size, 0);
+        let sizeText = "";
+        if (totalBytes < 1024) {
+            sizeText = `${totalBytes} B`;
+        } else if (totalBytes < 1024 * 1024) {
+            sizeText = `${(totalBytes / 1024).toFixed(2)} KB`;
+        } else {
+            sizeText = `${(totalBytes / (1024 * 1024)).toFixed(2)} MB`;
+        }
+        fileCountEl.textContent = `Total Files Selected: ${uploadedFiles.length} (${sizeText})`;
     }
 
     submitBtn.disabled = uploadedFiles.length === 0;

@@ -37,15 +37,12 @@ def generate_zip_archive(plots_data: Dict[str, str]) -> io.BytesIO:
     zip_buffer.seek(0)
     return zip_buffer
 
-def parse_markdown_to_xml(text: str) -> str:
+def parse_inline_markdown(text: str) -> str:
     """
-    Transforms scientific markdown text with bolding and bullet lists
-    into ReportLab Paragraph XML-compliant markup.
+    Safely convert double asterisks to ReportLab-friendly bold tags.
     """
     if not text:
         return ""
-    
-    # 1. Parse bold blocks securely without regex to avoid infinite loops
     parts = text.split("**")
     xml_parts = []
     for idx, part in enumerate(parts):
@@ -53,24 +50,64 @@ def parse_markdown_to_xml(text: str) -> str:
             xml_parts.append(f"<b>{part}</b>")
         else:
             xml_parts.append(part)
-    html_text = "".join(xml_parts)
+    return "".join(xml_parts)
+
+def add_markdown_flowables(text: str, story: list, body_style, heading_style):
+    """
+    Parses complex multi-paragraph scientific markdown text, converting
+    it into high-fidelity independent ReportLab Paragraph flowables.
+    """
+    if not text:
+        return
+        
+    import re
+    from reportlab.platypus import Paragraph, Spacer
     
-    # 2. Parse headers and bullet lists
-    lines = html_text.split("\n")
-    processed_lines = []
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
+    # 1. Strip raw decorative separators like ===, ---, ___ or »»»
+    text = re.sub(r'[=\-_»~—]{3,}', '', text)
+    
+    # 2. Split into distinct logical text blocks
+    blocks = text.split("\n\n")
+    for block in blocks:
+        block_stripped = block.strip()
+        if not block_stripped:
             continue
-        if stripped.startswith("- ") or stripped.startswith("* "):
-            content = stripped[2:]
-            processed_lines.append(f"&bull; {content}<br/>")
-        elif stripped.startswith("### "):
-            content = stripped[4:]
-            processed_lines.append(f"<font color='#1A365D'><b>{content}</b></font><br/>")
+            
+        # Parse Setext header: line followed by a divider line of === or ---
+        lines = [l.strip() for l in block_stripped.split("\n") if l.strip()]
+        if len(lines) == 2 and re.match(r'^[=\-]{3,}$', lines[1]):
+            story.append(Paragraph(lines[0], heading_style))
+            story.append(Spacer(1, 4))
+            continue
+            
+        # Handle regular ATX header styles (e.g. ###, ##, #)
+        if block_stripped.startswith("### "):
+            story.append(Paragraph(block_stripped[4:].strip(), heading_style))
+            story.append(Spacer(1, 4))
+        elif block_stripped.startswith("## "):
+            story.append(Paragraph(block_stripped[3:].strip(), heading_style))
+            story.append(Spacer(1, 4))
+        elif block_stripped.startswith("# "):
+            story.append(Paragraph(block_stripped[2:].strip(), heading_style))
+            story.append(Spacer(1, 4))
+            
+        # Handle Bullet List Blocks
+        elif block_stripped.startswith("- ") or block_stripped.startswith("* ") or block_stripped.startswith("• "):
+            for line in block_stripped.split("\n"):
+                line_stripped = line.strip()
+                if line_stripped.startswith("- ") or line_stripped.startswith("* ") or line_stripped.startswith("• "):
+                    content = line_stripped.lstrip("-*• ")
+                    content_xml = parse_inline_markdown(content)
+                    story.append(Paragraph(f"&bull; {content_xml}", body_style))
+            story.append(Spacer(1, 4))
+            
+        # Handle Standard Scientific Body Text
         else:
-            processed_lines.append(f"{stripped}<br/>")
-    return "".join(processed_lines)
+            # Join single-wrapped line breaks into a clean cohesive paragraph text
+            cleaned_p = " ".join(lines)
+            p_xml = parse_inline_markdown(cleaned_p)
+            story.append(Paragraph(p_xml, body_style))
+            story.append(Spacer(1, 6))
 
 def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, str]) -> io.BytesIO:
     """
@@ -223,8 +260,7 @@ def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, st
             plot_type, 
             "No AI diagnostics performed for this plot in the current session."
         )
-        xml_formatted = parse_markdown_to_xml(diag_text)
-        story.append(Paragraph(xml_formatted, body_style))
+        add_markdown_flowables(diag_text, story, body_style, section_style)
 
     try:
         doc.build(story)

@@ -798,7 +798,7 @@ button {
     white-space: nowrap;
 }
 
-/* Elegant floating toast notification */
+/* Elegant floating toast and alert notifications */
 .toast-notice {
     position: fixed;
     bottom: 24px;
@@ -823,6 +823,115 @@ button {
 
 @keyframes fadeOut {
     to { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Modern smooth alerts and notifications container */
+.alert-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10000;
+    max-width: 400px;
+    width: calc(100% - 48px);
+}
+
+.alert-toast {
+    background: rgba(13, 17, 30, 0.75);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: 4px solid var(--primary);
+    border-radius: 12px;
+    color: var(--text-primary);
+    padding: 16px 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, margin 0.3s ease;
+    opacity: 0;
+}
+
+.alert-toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.alert-toast.hide {
+    transform: translateX(120%);
+    opacity: 0;
+}
+
+.alert-toast-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alert-toast-content {
+    flex-grow: 1;
+}
+
+.alert-toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.alert-toast-close:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Alert Theme Styles */
+.alert-toast.warning {
+    border-left-color: #ffb703;
+    box-shadow: 0 8px 32px 0 rgba(255, 183, 3, 0.15);
+}
+.alert-toast.warning .alert-toast-icon {
+    color: #ffb703;
+}
+
+.alert-toast.error {
+    border-left-color: #ff4d4d;
+    box-shadow: 0 8px 32px 0 rgba(255, 77, 77, 0.15);
+}
+.alert-toast.error .alert-toast-icon {
+    color: #ff4d4d;
+}
+
+.alert-toast.success {
+    border-left-color: #2ec4b6;
+    box-shadow: 0 8px 32px 0 rgba(46, 196, 182, 0.15);
+}
+.alert-toast.success .alert-toast-icon {
+    color: #2ec4b6;
+}
+
+.alert-toast.info {
+    border-left-color: var(--primary);
+    box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.15);
+}
+.alert-toast.info .alert-toast-icon {
+    color: var(--primary);
 }
 
 /* Original Plot Actions & AI Review Section */

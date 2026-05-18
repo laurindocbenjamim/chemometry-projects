@@ -75,7 +75,7 @@ function handleFiles(files) {
         }
     }
 
-    if (errors.length > 0) alert(errors.join("\n"));
+    if (errors.length > 0) showAlert(errors.join("<br/>"), "error");
     updateFileBadges();
 }
 
@@ -338,7 +338,7 @@ function setupVisualizationSwitchers() {
 
 function executePipeline() {
     if (uploadedFiles.length < 3) {
-        alert("Please select at least 3 CSV/SP files to execute the analysis pipeline.");
+        showAlert("Please select at least 3 CSV/SP files to execute the analysis pipeline.", "warning");
         return;
     }
     const algorithm = document.getElementById("algorithm").value;
@@ -348,11 +348,11 @@ function executePipeline() {
 
     if (sgChecked) {
         if (windowLen % 2 === 0) {
-            alert("Savitzky-Golay window length must be odd!");
+            showAlert("Savitzky-Golay window length must be odd!", "warning");
             return;
         }
         if (polyOrder >= windowLen) {
-            alert("SG Polynomial Order must be strictly less than the window length!");
+            showAlert("SG Polynomial Order must be strictly less than the window length!", "warning");
             return;
         }
     }
@@ -360,7 +360,7 @@ function executePipeline() {
     if (algorithm === "PLS") {
         const classes = new Set(uploadedFiles.map(f => f.name[0].toUpperCase()));
         if (classes.size < 2) {
-            alert("PLS requires files from at least 2 distinct classes (based on the first letter of filenames, e.g. A1... and B1...).");
+            showAlert("PLS requires files from at least 2 distinct classes (based on the first letter of filenames, e.g. A1... and B1...).", "warning");
             return;
         }
     }
@@ -426,7 +426,7 @@ function executePipeline() {
             clearInterval(progressInterval);
             progressContainer.style.display = "none";
             const msg = error.response?.data?.detail || "Pipeline processing failed.";
-            alert(msg);
+            showAlert(msg, "error");
         })
         .finally(() => {
             submitBtn.innerHTML = `<i data-lucide="play"></i> Execute Analysis`;
@@ -725,6 +725,12 @@ function renderDiagnosisInContainer(container, plotType, rawAnalysis) {
             aiMsgElement.classList.remove("loading-msg");
 
             if (qaRes.data.success) {
+                // Append to the session diagnosis history so it integrates seamlessly in PDF exports and tab-switch restores
+                if (!currentDiagnoses[plotType].includes("### Interactive Consultation History")) {
+                    currentDiagnoses[plotType] += "\n\n### Interactive Consultation History\n";
+                }
+                currentDiagnoses[plotType] += `\n**Researcher:** *${questionText}*\n\n**AI Consultant:** ${qaRes.data.answer}\n`;
+
                 aiMsgElement.innerHTML = `
                     <span class="chat-sender"><i data-lucide="sparkles" style="width: 12px; height: 12px; color: var(--primary);"></i> AI Response:</span>
                     <div class="ai-qa-answer-text">${formatMarkdownResponse(qaRes.data.answer)}</div>
@@ -845,15 +851,69 @@ function formatMarkdownResponse(text) {
     return html;
 }
 
-function showToast(message) {
-    const existing = document.querySelector(".toast-notice");
-    if (existing) existing.remove();
+function showAlert(message, type = "warning") {
+    // Locate or create the alert container
+    let container = document.querySelector(".alert-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.className = "alert-container";
+        document.body.appendChild(container);
+    }
     
+    // Choose Lucide icon based on type
+    const icons = {
+        warning: "alert-triangle",
+        error: "x-circle",
+        success: "check-circle",
+        info: "info"
+    };
+    const iconName = icons[type] || "info";
+
     const toast = document.createElement("div");
-    toast.className = "toast-notice";
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => toast.remove(), 2500);
+    toast.className = `alert-toast ${type}`;
+    toast.innerHTML = `
+        <div class="alert-toast-icon">
+            <i data-lucide="${iconName}"></i>
+        </div>
+        <div class="alert-toast-content">${message}</div>
+        <button class="alert-toast-close">
+            <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+        </button>
+    `;
+    container.appendChild(toast);
+    lucide.createIcons();
+
+    // Trigger smooth transition
+    setTimeout(() => {
+        toast.classList.add("show");
+    }, 10);
+
+    // Auto dismiss after 4 seconds
+    let dismissTimeout = setTimeout(() => {
+        dismissAlert(toast);
+    }, 4500);
+
+    // Bind interactive close button
+    toast.querySelector(".alert-toast-close").addEventListener("click", () => {
+        clearTimeout(dismissTimeout);
+        dismissAlert(toast);
+    });
+}
+
+function dismissAlert(toast) {
+    toast.classList.remove("show");
+    toast.classList.add("hide");
+    toast.addEventListener("transitionend", () => {
+        toast.remove();
+        // Remove container if empty
+        const container = document.querySelector(".alert-container");
+        if (container && container.children.length === 0) {
+            container.remove();
+        }
+    });
+}
+
+function showToast(message) {
+    showAlert(message, "info");
 }
 

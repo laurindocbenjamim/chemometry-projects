@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpectraLab - Spectroscopy & Chemometrics Dashboard</title>
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Axios for robust API requests -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- ApexCharts for ultra-premium interactive charts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Custom stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <i data-lucide="activity" class="brand-icon"></i>
+            <h1>Spectra<span>Lab</span></h1>
+        </div>
+        <div class="status-indicator">
+            <span class="pulse-dot"></span>
+            <span id="api-status">Connecting Backend...</span>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <!-- Configuration and Upload Sidebar -->
+        <section class="sidebar-panel glass-card">
+            <h2><i data-lucide="sliders"></i> Pipeline Configuration</h2>
+            
+            <form id="pipeline-form">
+                <!-- Algorithm Selection -->
+                <div class="input-group">
+                    <label for="algorithm">Target Algorithm</label>
+                    <select id="algorithm">
+                        <option value="PCA" selected>PCA (Principal Component Analysis)</option>
+                        <option value="PLS">PLS (Partial Least Squares)</option>
+                        <option value="RAMAN">RAMAN (ALS Baseline Correction)</option>
+                    </select>
+                </div>
+
+                <!-- Explicit File Format Selection -->
+                <div class="input-group">
+                    <label for="file-format">Expected File Format</label>
+                    <select id="file-format">
+                        <option value="auto" selected>Auto-Detect Format</option>
+                        <option value="sp">PerkinElmer (.sp binary)</option>
+                        <option value="csv">Texas Instruments (.csv)</option>
+                    </select>
+                </div>
+
+                <!-- Preprocessing Parameters -->
+                <div class="section-divider"></div>
+                <h3>Preprocessing Steps</h3>
+
+                <div class="checkbox-group">
+                    <label class="switch-container">
+                        <input type="checkbox" id="snv" checked>
+                        <span class="switch-slider"></span>
+                        <span class="switch-label">Apply SNV Standardisation</span>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <label class="switch-container">
+                        <input type="checkbox" id="mean-center" checked>
+                        <span class="switch-slider"></span>
+                        <span class="switch-label">Mean Centering</span>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <label class="switch-container">
+                        <input type="checkbox" id="sg-filter" checked>
+                        <span class="switch-slider"></span>
+                        <span class="switch-label">Savitzky-Golay Filtering</span>
+                    </label>
+                </div>
+
+                <!-- SG Nested Options -->
+                <div id="sg-options" class="nested-options-panel">
+                    <div class="input-group">
+                        <label for="sg-window">SG Window Length (Odd)</label>
+                        <input type="number" id="sg-window" value="15" min="3" step="2">
+                    </div>
+                    <div class="input-group">
+                        <label for="sg-poly">SG Polynomial Order</label>
+                        <input type="number" id="sg-poly" value="2" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="sg-deriv">SG Derivative Order</label>
+                        <select id="sg-deriv">
+                            <option value="0" selected>0 - Smoothing</option>
+                            <option value="1">1 - First Derivative</option>
+                            <option value="2">2 - Second Derivative</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Drag & Drop Uploader -->
+                <div class="section-divider"></div>
+                <div class="upload-zone" id="upload-zone">
+                    <i data-lucide="cloud-upload" class="upload-icon"></i>
+                    <p>Drag & Drop spectroscopy files here</p>
+                    <span>supports .sp & .csv (Max 5MB each)</span>
+                    <input type="file" id="file-input" multiple accept=".csv,.sp" style="display: none;">
+                    <button type="button" class="btn-secondary" id="browse-btn">Browse Files</button>
+                </div>
+
+                <!-- Selected Files List -->
+                <div id="file-list" class="file-badge-container"></div>
+
+                <button type="submit" class="btn-primary" id="submit-btn" disabled>
+                    <i data-lucide="play"></i> Execute Analysis
+                </button>
+            </form>
+        </section>
+
+        <!-- Main Display Panel -->
+        <section class="main-display">
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state glass-card">
+                <i data-lucide="bar-chart-3" class="placeholder-icon animate-float"></i>
+                <h2>Ready for Spectrometric Processing</h2>
+                <p>Upload your spectroscopy data files (.csv or .sp) and configure the chemometric algorithms on the left to begin interactive visualization.</p>
+            </div>
+
+            <!-- Dashboard Charts Container -->
+            <div id="dashboard-content" class="dashboard-content" style="display: none;">
+                <!-- Quick Stats -->
+                <div class="stats-row">
+                    <div class="stat-card glass-card">
+                        <span class="stat-label">Algorithm</span>
+                        <span class="stat-val" id="stat-algo">-</span>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <span class="stat-label">Detected Format</span>
+                        <span class="stat-val" id="stat-format">-</span>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <span class="stat-label">Spectra Samples</span>
+                        <span class="stat-val" id="stat-count">-</span>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <span class="stat-label">Wavelengths Grid</span>
+                        <span class="stat-val" id="stat-wl">-</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic Chart Layouts -->
+                <div class="charts-grid" id="charts-grid">
+                    <!-- Charts dynamically injected here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

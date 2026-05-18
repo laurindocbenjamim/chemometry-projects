@@ -166,13 +166,10 @@ FUNC_DECODE = {
     35708: _decode_35708
 }
 
-def read_sp(sp_file_path):
+def read_sp_from_bytes(content: bytes, filename: str):
     """
-    Read a PerkinElmer .sp binary file.
+    Read a PerkinElmer .sp binary file directly from a bytes object.
     """
-    with open(sp_file_path, 'rb') as f:
-        content = f.read()
-
     start_byte = 0
     n_bytes = 4
     signature = content[start_byte:start_byte + n_bytes]
@@ -230,8 +227,16 @@ def read_sp(sp_file_path):
                              meta['max_wavelength'],
                              meta['n_points'])
     
-    meta['filename'] = os.path.basename(sp_file_path)
+    meta['filename'] = filename
     return spectrum, wavelength, meta
+
+def read_sp(sp_file_path):
+    """
+    Read a PerkinElmer .sp binary file by file path.
+    """
+    with open(sp_file_path, 'rb') as f:
+        content = f.read()
+    return read_sp_from_bytes(content, os.path.basename(sp_file_path))
 
 def load_sp_data(pathname: str, excel_name: str = None) -> pd.DataFrame:
     """

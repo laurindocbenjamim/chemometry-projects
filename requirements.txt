@@ -6,3 +6,9 @@ scikit-learn
 plotly
 seaborn
 openpyxl
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+sentry-sdk
+python-multipart

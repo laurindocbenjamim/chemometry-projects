@@ -1,4 +1,6 @@
 import numpy as np
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 from scipy.signal import savgol_filter
 
 def calculate_snv(x):
@@ -13,19 +15,6 @@ def calculate_snv(x):
 def savitzky_golay_filter(X, window_length=11, polyorder=2, deriv=0):
     """
     Apply Savitzky-Golay filter to the input dataset.
-
-    Args:
-        X (np.ndarray): Input dataset of shape (num_samples, num_variables).
-                        Rows = samples, columns = variables/wavelengths.
-        window_length (int): Length of the filter window. Must be odd.
-        polyorder (int): Polynomial order. Must be smaller than window_length.
-        deriv (int): Derivative order.
-                     0 = smoothing
-                     1 = first derivative
-                     2 = second derivative
-
-    Returns:
-        X_sg (np.ndarray): Savitzky-Golay filtered dataset.
     """
     X = np.asarray(X, dtype=float)
 
@@ -50,13 +39,36 @@ def savitzky_golay_filter(X, window_length=11, polyorder=2, deriv=0):
 def mean_centering(X):
     """
     Perform mean centering on the input dataset.
-
-    Args:
-    X (np.ndarray): Input dataset of shape (num_samples, num_variables).
-
-    Returns:
-    X_centered (np.ndarray): Mean-centered dataset.
     """
     variable_means = np.mean(X, axis=0)
     X_centered = X - variable_means
     return X_centered
+
+def baseline_als(y, lam=1e5, p=0.01, niter=10):
+    """
+    Asymmetric Least Squares (AsLS) baseline correction (Eilers & Boelens, 2005).
+    Works on 1D arrays. If y is 2D, fits baseline for each spectrum.
+    """
+    y = np.asarray(y, dtype=float)
+    if y.ndim == 2:
+        corrected = np.zeros_like(y)
+        baselines = np.zeros_like(y)
+        for i in range(y.shape[0]):
+            b = _baseline_als_1d(y[i], lam, p, niter)
+            baselines[i] = b
+            corrected[i] = y[i] - b
+        return corrected, baselines
+    else:
+        b = _baseline_als_1d(y, lam, p, niter)
+        return y - b, b
+
+def _baseline_als_1d(y, lam, p, niter):
+    L = len(y)
+    D = sparse.diags([1, -2, 1], [0, 1, 2], shape=(L-2, L)).tocsc()
+    w = np.ones(L)
+    for _ in range(niter):
+        W = sparse.diags(w, 0, shape=(L, L)).tocsc()
+        Z = W + lam * D.T.dot(D)
+        z = spsolve(Z, w * y)
+        w = p * (y > z) + (1 - p) * (y < z)
+    return z

@@ -16,6 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <!-- Custom stylesheet -->
     <link rel="stylesheet" href="styles.css">
+    <!-- SVG Favicon in the Browser Title Header -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300f0ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M22 12h-4l-3 9L9 3l-3 9H2'/></svg>">
 </head>
 <body>
     <header class="app-header">
@@ -23,10 +25,6 @@
             <i data-lucide="activity" class="brand-icon"></i>
             <h1>Spectra<span>Lab</span></h1>
         </div>
-        <nav class="app-nav">
-            <button class="nav-tab active" id="tab-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</button>
-            <button class="nav-tab" id="tab-icons"><i data-lucide="search-code"></i> Icon Browser</button>
-        </nav>
         <div class="status-indicator">
             <span class="pulse-dot"></span>
             <span id="api-status">Connecting Backend...</span>
@@ -121,6 +119,13 @@
                 <div id="selected-files-count" class="selected-files-count">No files selected</div>
                 <div id="file-list" class="file-badge-container"></div>
 
+                <!-- Global Object of Study Context for AI Review -->
+                <div class="section-divider"></div>
+                <div class="input-group">
+                    <label for="study-context">Object of Study Context (AI Agent Input)</label>
+                    <textarea id="study-context" placeholder="Describe the study (e.g. 'Coffee samples to detect chicory adulteration'). The AI Vision agent will use this context to analyze each plot." rows="3" style="width: 100%; border: 1px solid var(--border-card); background: rgba(16, 20, 38, 0.5); border-radius: 8px; color: var(--text-primary); padding: 8px 12px; font-family: inherit; font-size: 12px; line-height: 1.4; resize: vertical; outline: none; transition: var(--transition); margin-bottom: 12px;"></textarea>
+                </div>
+
                 <button type="submit" class="btn-primary" id="submit-btn" disabled>
                     <i data-lucide="play"></i> Execute Analysis
                 </button>
@@ -152,14 +157,24 @@
                     <div class="stages-pills" id="stages-pills"></div>
                 </div>
 
-                <!-- Visualization Mode Switcher -->
-                <div class="segment-control glass-card" style="margin-top: 8px;">
-                    <button type="button" class="segment-btn active" id="btn-show-interactive">
-                        <i data-lucide="bar-chart-2"></i> Interactive Charts (ApexCharts)
-                    </button>
-                    <button type="button" class="segment-btn" id="btn-show-original">
-                        <i data-lucide="image"></i> Original Plots (Matplotlib)
-                    </button>
+                <!-- Visualization Mode Switcher & Action Buttons -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+                    <div class="segment-control glass-card" style="margin-top: 0;">
+                        <button type="button" class="segment-btn active" id="btn-show-interactive">
+                            <i data-lucide="bar-chart-2"></i> Interactive Charts (ApexCharts)
+                        </button>
+                        <button type="button" class="segment-btn" id="btn-show-original">
+                            <i data-lucide="image"></i> Original Plots (Matplotlib)
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="action-btn secondary-btn" id="btn-download-all-plots" style="display: none; padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; align-items: center; gap: 8px; cursor: pointer; transition: all 0.3s ease; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.2); color: var(--primary);">
+                            <i data-lucide="download"></i> Download All Plots
+                        </button>
+                        <button type="button" class="action-btn secondary-btn" id="btn-reset-dashboard" style="padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.3s ease;">
+                            <i data-lucide="refresh-cw"></i> Start New Process
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Quick Stats -->
@@ -194,20 +209,6 @@
             </div>
         </section>
     </main>
-
-    <!-- Global Icon Browser Workspace Panel -->
-    <section id="icon-browser-section" class="icon-browser-section glass-card" style="display: none; margin: 24px; padding: 24px;">
-        <div class="icon-browser-header">
-            <h2><i data-lucide="palette"></i> Lucide Icon Library Browser</h2>
-            <p>Search, preview, and click any icon to copy its inline HTML syntax directly to your clipboard.</p>
-            <div class="icon-search-wrapper">
-                <i data-lucide="search" class="search-icon"></i>
-                <input type="text" id="icon-search-input" placeholder="Search icons (e.g. chart, data, settings, lab, file)...">
-            </div>
-        </div>
-        
-        <div class="icon-grid" id="icon-browser-grid"></div>
-    </section>
 
     <script src="chart-renderers.js"></script>
     <script src="app.js"></script>

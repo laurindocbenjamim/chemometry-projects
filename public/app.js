@@ -123,6 +123,8 @@ function setupFormHandlers() {
 function setupVisualizationSwitchers() {
     const btnInteractive = document.getElementById("btn-show-interactive");
     const btnOriginal = document.getElementById("btn-show-original");
+    const btnReset = document.getElementById("btn-reset-dashboard");
+    const btnDownloadAll = document.getElementById("btn-download-all-plots");
     const chartsGrid = document.getElementById("charts-grid");
     const originalGrid = document.getElementById("original-plots-grid");
 
@@ -131,6 +133,7 @@ function setupVisualizationSwitchers() {
         btnOriginal.classList.remove("active");
         chartsGrid.style.display = "grid";
         originalGrid.style.display = "none";
+        btnDownloadAll.style.display = "none";
     });
 
     btnOriginal.addEventListener("click", () => {
@@ -138,7 +141,51 @@ function setupVisualizationSwitchers() {
         btnInteractive.classList.remove("active");
         chartsGrid.style.display = "none";
         originalGrid.style.display = "grid";
+        btnDownloadAll.style.display = "inline-flex";
         renderOriginalPlotsList();
+    });
+
+    // Download All Plots Event
+    btnDownloadAll.addEventListener("click", () => {
+        const keys = Object.keys(currentOriginalPlots);
+        if (keys.length === 0) {
+            showToast("No original plots available for download.");
+            return;
+        }
+        keys.forEach((key, idx) => {
+            setTimeout(() => {
+                downloadSinglePlot(currentOriginalPlots[key], `${key}_plot.png`);
+            }, idx * 300);
+        });
+        showToast(`Initiating downloads for all ${keys.length} plots...`);
+    });
+
+    btnReset.addEventListener("click", () => {
+        uploadedFiles = [];
+        const uploader = document.getElementById("upload-zone");
+        const existingList = uploader.querySelector(".file-list-preview");
+        if (existingList) existingList.remove();
+        
+        const countBadge = document.getElementById("selected-files-count");
+        if (countBadge) {
+            countBadge.textContent = "0 files selected";
+            countBadge.style.display = "none";
+        }
+        
+        document.getElementById("pipeline-form").reset();
+        document.getElementById("study-context").value = "";
+        document.getElementById("sg-options").style.display = "none";
+        
+        Object.values(window.chartInstances).forEach(chart => chart.destroy());
+        window.chartInstances = {};
+        currentOriginalPlots = {};
+        
+        document.getElementById("dashboard-content").style.display = "none";
+        document.getElementById("empty-state").style.display = "flex";
+        document.getElementById("stages-tracker-container").style.display = "none";
+        btnDownloadAll.style.display = "none";
+        
+        showToast("Dashboard reset successfully. Ready for a new run!");
     });
 }
 
@@ -337,84 +384,136 @@ function renderOriginalPlotsList() {
     };
 
     Object.entries(currentOriginalPlots).forEach(([key, base64Str]) => {
+        const titleText = titles[key] || key.toUpperCase() + " Plot";
         const card = document.createElement("div");
         card.className = "original-plot-card glass-card";
+        
         card.innerHTML = `
-            <h3>${titles[key] || key.toUpperCase() + " Plot"}</h3>
+            <div class="original-plot-card-header">
+                <h3>${titleText}</h3>
+            </div>
             <img src="data:image/png;base64,${base64Str}" alt="${key} plot">
+            <div class="original-plot-actions">
+                <button class="original-plot-btn btn-download-single">
+                    <i data-lucide="download"></i> Download PNG
+                </button>
+                <button class="original-plot-btn primary btn-ai-analyze">
+                    <i data-lucide="brain"></i> AI Diagnose Plot
+                </button>
+            </div>
+            <div class="ai-diagnosis-wrapper" style="display: none;"></div>
         `;
+        
+        // Single image downloader
+        card.querySelector(".btn-download-single").addEventListener("click", () => {
+            downloadSinglePlot(base64Str, `${key}_plot.png`);
+        });
+
+        // Vision AI analyzer agent
+        card.querySelector(".btn-ai-analyze").addEventListener("click", (e) => {
+            executeVisionAiAnalysis(base64Str, titleText, card.querySelector(".ai-diagnosis-wrapper"), e.currentTarget);
+        });
+
         grid.appendChild(card);
+    });
+    
+    // Refresh lucide icons inside the newly generated grid
+    lucide.createIcons();
+}
+
+function downloadSinglePlot(base64Str, filename) {
+    const link = document.createElement("a");
+    link.href = `data:image/png;base64,${base64Str}`;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Downloading ${filename}...`);
+}
+
+function executeVisionAiAnalysis(base64Str, plotType, container, button) {
+    const context = document.getElementById("study-context").value.trim();
+    
+    button.disabled = true;
+    button.innerHTML = `<i data-lucide="loader" class="animate-spin"></i> Analyzing...`;
+    lucide.createIcons();
+
+    container.style.display = "block";
+    container.innerHTML = `
+        <div class="ai-diagnosis-container">
+            <div class="ai-diagnosis-title">
+                <i data-lucide="bot"></i> AI Scientific Diagnostics
+            </div>
+            <div class="ai-diagnosis-content">
+                <span class="pulse-dot" style="display: inline-block; margin-right: 8px;"></span> Consultant reviewing visual features and data projections...
+            </div>
+        </div>
+    `;
+    lucide.createIcons();
+
+    axios.post("/ai/analyze-plot", {
+        image_base64: base64Str,
+        plot_type: plotType,
+        context: context
+    })
+    .then(response => {
+        button.disabled = false;
+        button.innerHTML = `<i data-lucide="brain"></i> Re-Diagnose`;
+        lucide.createIcons();
+
+        if (response.data.success) {
+            // Render beautiful markdown style formatting
+            container.innerHTML = `
+                <div class="ai-diagnosis-container">
+                    <div class="ai-diagnosis-title">
+                        <i data-lucide="bot"></i> AI Scientific Diagnostics
+                    </div>
+                    <div class="ai-diagnosis-content">${formatMarkdownResponse(response.data.analysis)}</div>
+                </div>
+            `;
+            lucide.createIcons();
+        } else {
+            container.innerHTML = `
+                <div class="ai-diagnosis-container" style="border-left-color: #ff3b30;">
+                    <div class="ai-diagnosis-title" style="color: #ff3b30;">
+                        <i data-lucide="alert-triangle"></i> Diagnostics Failed
+                    </div>
+                    <div class="ai-diagnosis-content">${response.data.error || "Unknown VLM error. Please try again."}</div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+    })
+    .catch(error => {
+        button.disabled = false;
+        button.innerHTML = `<i data-lucide="brain"></i> AI Diagnose Plot`;
+        lucide.createIcons();
+
+        container.innerHTML = `
+            <div class="ai-diagnosis-container" style="border-left-color: #ff3b30;">
+                <div class="ai-diagnosis-title" style="color: #ff3b30;">
+                    <i data-lucide="alert-triangle"></i> Connection Error
+                </div>
+                <div class="ai-diagnosis-content">Failed to reach the AI endpoint: ${error.message}</div>
+            </div>
+        `;
+        lucide.createIcons();
     });
 }
 
-// Global Lucide Icons Registry for the Built-in Icon Browser
-const lucideIconsList = [
-    "activity", "bar-chart", "bar-chart-2", "bar-chart-3", "line-chart", "pie-chart", "area-chart", "scatter-chart",
-    "database", "file", "files", "file-text", "folder", "folder-open", "sliders", "settings", "settings-2",
-    "sliders-horizontal", "cloud-upload", "download", "refresh-cw", "eye", "eye-off", "play", "pause", "check",
-    "alert-circle", "info", "x", "plus", "minus", "search", "code", "copy", "check-circle", "layout",
-    "layout-dashboard", "grid", "list", "user", "users", "lock", "key", "shield", "zap", "heart", "star",
-    "bell", "calendar", "clock", "mail", "phone", "map-pin", "compass", "globe", "link", "share-2", "trash-2",
-    "edit", "edit-2", "edit-3", "arrow-right", "arrow-left", "chevron-right", "chevron-left", "chevron-down",
-    "chevron-up", "filter", "book-open", "microscope", "flask-conical", "flask-round", "test-tube", "beaker",
-    "atom", "brain", "scale", "thermometer", "gauge", "cpu", "terminal", "github", "external-link", "moon",
-    "sun", "monitor", "tablet", "smartphone", "laptop", "printer", "wifi", "bluetooth", "hard-drive", "server",
-    "image", "video", "music", "volume-2", "camera", "mic", "send", "paperclip", "clipboard", "help-circle",
-    "alert-triangle", "check-square", "square", "play-circle", "stop-circle"
-];
-
-// Navigation Switcher Tabs
-document.getElementById("tab-dashboard").addEventListener("click", () => {
-    document.getElementById("tab-dashboard").classList.add("active");
-    document.getElementById("tab-icons").classList.remove("active");
-    document.querySelector(".dashboard-grid").style.display = "grid";
-    document.getElementById("icon-browser-section").style.display = "none";
-});
-
-document.getElementById("tab-icons").addEventListener("click", () => {
-    document.getElementById("tab-icons").classList.add("active");
-    document.getElementById("tab-dashboard").classList.remove("active");
-    document.querySelector(".dashboard-grid").style.display = "none";
-    document.getElementById("icon-browser-section").style.display = "block";
-    initIconBrowser();
-});
-
-let iconBrowserInitialized = false;
-function initIconBrowser() {
-    if (iconBrowserInitialized) return;
-    iconBrowserInitialized = true;
-
-    const grid = document.getElementById("icon-browser-grid");
-    const search = document.getElementById("icon-search-input");
-    
-    function renderIcons(filterText = "") {
-        grid.innerHTML = "";
-        const query = filterText.toLowerCase();
+function formatMarkdownResponse(text) {
+    // Elegant regex mapping for headers and lists to make the output extremely high-fidelity
+    let html = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/### (.*?)\n/g, '<h3>$1</h3>')
+        .replace(/## (.*?)\n/g, '<h3>$1</h3>')
+        .replace(/# (.*?)\n/g, '<h3>$1</h3>')
+        .replace(/^\s*\*\s+(.*?)$/gm, '<li>$1</li>')
+        .replace(/^\s*-\s+(.*?)$/gm, '<li>$1</li>');
         
-        lucideIconsList.forEach(iconName => {
-            if (query && !iconName.includes(query)) return;
-            
-            const card = document.createElement("div");
-            card.className = "icon-card";
-            card.innerHTML = `
-                <i data-lucide="${iconName}"></i>
-                <span>${iconName}</span>
-            `;
-            
-            card.addEventListener("click", () => {
-                const markup = `<i data-lucide="${iconName}"></i>`;
-                navigator.clipboard.writeText(markup).then(() => {
-                    showToast(`Copied HTML: ${markup}`);
-                });
-            });
-            grid.appendChild(card);
-        });
-        
-        lucide.createIcons();
-    }
-    
-    search.addEventListener("input", (e) => renderIcons(e.target.value));
-    renderIcons();
+    // Wrap consecutive list items in ul blocks
+    html = html.replace(/(<li>.*?<\/li>)+/g, match => `<ul>${match}</ul>`);
+    return html;
 }
 
 function showToast(message) {

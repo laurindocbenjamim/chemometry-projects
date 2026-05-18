@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from src.config.config import settings
 from src.shared.sentry import init_sentry
 from src.domains.pca.router import router as pca_router
+from src.domains.ai.router import router as ai_router
 
 # 1. Initialize Sentry tracking
 init_sentry()
@@ -46,6 +47,7 @@ async def global_exception_handler(request, exc):
 
 # 4. Include Domain Routers
 app.include_router(pca_router)
+app.include_router(ai_router)
 
 # 5. Serve Frontend static files (HTML, CSS, JS) from 'public' directory
 public_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")

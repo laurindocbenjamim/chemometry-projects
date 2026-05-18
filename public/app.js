@@ -6,6 +6,7 @@ let uploadedFiles = [];
 let currentOriginalPlots = {};
 let currentDiagnoses = {};
 let currentPipelineData = null;
+let currentStageKey = "raw";
 
 document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
@@ -336,6 +337,10 @@ function setupVisualizationSwitchers() {
 }
 
 function executePipeline() {
+    if (uploadedFiles.length < 3) {
+        alert("Please select at least 3 CSV/SP files to execute the analysis pipeline.");
+        return;
+    }
     const algorithm = document.getElementById("algorithm").value;
     const sgChecked = document.getElementById("sg-filter").checked;
     const windowLen = parseInt(document.getElementById("sg-window").value);
@@ -470,15 +475,21 @@ function renderDashboard(data) {
             pill.addEventListener("click", () => {
                 document.querySelectorAll(".stage-pill").forEach(p => p.classList.remove("active"));
                 pill.classList.add("active");
+                currentStageKey = stageKey;
                 selectStageData(data.plots.stages[stageKey], data.algorithm);
             });
             pillsContainer.appendChild(pill);
         });
 
         // Click the final preprocessed stage by default
-        document.querySelectorAll(".stage-pill")[data.plots.active_stages.length - 1].click();
+        if (data.plots.active_stages.length > 0) {
+            const finalStage = data.plots.active_stages[data.plots.active_stages.length - 1];
+            currentStageKey = finalStage;
+            document.querySelectorAll(".stage-pill")[data.plots.active_stages.length - 1].click();
+        }
     } else {
         stagesTracker.style.display = "none";
+        currentStageKey = "raw";
         selectStageData(data.plots, data.algorithm);
     }
 }
@@ -531,6 +542,19 @@ function renderOriginalPlotsList() {
     };
 
     Object.entries(currentOriginalPlots).forEach(([key, base64Str]) => {
+        const stageLabels = {
+            raw: "Raw",
+            snv: "SNV",
+            sg: "Savgol",
+            mc: "MeanCentered"
+        };
+        const capitalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+        const labelPrefix = stageLabels[currentStageKey] || "Raw";
+        const plotIdentifier = `${labelPrefix} ${capitalizedKey}`;
+        
+        const hasDiagnosis = !!currentDiagnoses[plotIdentifier];
+        const btnText = hasDiagnosis ? '<i data-lucide="brain"></i> Re-Diagnose' : '<i data-lucide="brain"></i> AI Diagnose Plot';
+
         const titleText = titles[key] || key.toUpperCase() + " Plot";
         const card = document.createElement("div");
         card.className = "original-plot-card glass-card";
@@ -545,10 +569,10 @@ function renderOriginalPlotsList() {
                     <i data-lucide="download"></i> Download PNG
                 </button>
                 <button class="original-plot-btn primary btn-ai-analyze">
-                    <i data-lucide="brain"></i> AI Diagnose Plot
+                    ${btnText}
                 </button>
             </div>
-            <div class="ai-diagnosis-wrapper" style="display: none;"></div>
+            <div class="ai-diagnosis-wrapper" style="display: ${hasDiagnosis ? 'block' : 'none'};"></div>
         `;
         
         // Single image downloader
@@ -558,8 +582,13 @@ function renderOriginalPlotsList() {
 
         // Vision AI analyzer agent
         card.querySelector(".btn-ai-analyze").addEventListener("click", (e) => {
-            executeVisionAiAnalysis(base64Str, titleText, card.querySelector(".ai-diagnosis-wrapper"), e.currentTarget);
+            executeVisionAiAnalysis(base64Str, plotIdentifier, card.querySelector(".ai-diagnosis-wrapper"), e.currentTarget);
         });
+
+        // Persist diagnosis if already generated in this session
+        if (hasDiagnosis) {
+            renderDiagnosisInContainer(card.querySelector(".ai-diagnosis-wrapper"), plotIdentifier, currentDiagnoses[plotIdentifier]);
+        }
 
         grid.appendChild(card);
     });
@@ -576,6 +605,161 @@ function downloadSinglePlot(base64Str, filename) {
     link.click();
     document.body.removeChild(link);
     showToast(`Downloading ${filename}...`);
+}
+
+function renderDiagnosisInContainer(container, plotType, rawAnalysis) {
+    container.style.display = "block";
+    container.innerHTML = `
+        <div class="ai-diagnosis-container glass-card">
+            <div class="ai-diagnosis-header">
+                <div class="ai-diagnosis-title">
+                    <i data-lucide="bot"></i> AI Scientific Diagnostics
+                </div>
+                <button class="original-plot-btn copy-btn" style="padding: 4px 10px; font-size: 11px;">
+                    <i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy
+                </button>
+            </div>
+            <div class="ai-diagnosis-content">${formatMarkdownResponse(rawAnalysis)}</div>
+            
+            <!-- Q&A Interactive Thread -->
+            <div class="ai-qa-section">
+                <div class="ai-qa-header">
+                    <i data-lucide="message-square"></i> Ask a question about this plot
+                </div>
+                <div class="ai-qa-response-box" style="display: none;"></div>
+                <div class="ai-qa-input-wrapper">
+                    <input type="text" class="ai-qa-input" placeholder="Ask a question about this specific ${plotType}...">
+                    <button class="original-plot-btn primary ask-btn" style="padding: 8px 14px;">
+                        <i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    lucide.createIcons();
+
+    // Bind Copy Button Handler
+    const copyBtn = container.querySelector(".copy-btn");
+    copyBtn.addEventListener("click", () => {
+        let copyPromise;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            copyPromise = navigator.clipboard.writeText(rawAnalysis);
+        } else {
+            const textarea = document.createElement("textarea");
+            textarea.value = rawAnalysis;
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand("copy");
+                copyPromise = Promise.resolve();
+            } catch (e) {
+                copyPromise = Promise.reject(e);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        copyPromise
+            .then(() => {
+                copyBtn.innerHTML = `<i data-lucide="check" style="color: var(--success); width: 12px; height: 12px;"></i> Copied!`;
+                lucide.createIcons();
+                showToast("Diagnostics copied to clipboard!");
+                setTimeout(() => {
+                    copyBtn.innerHTML = `<i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy`;
+                    lucide.createIcons();
+                }, 2000);
+            })
+            .catch(err => {
+                showToast("Failed to copy text: " + err);
+            });
+    });
+
+    // Bind Q&A Submit Handlers
+    const qaInput = container.querySelector(".ai-qa-input");
+    const askBtn = container.querySelector(".ask-btn");
+    const responseBox = container.querySelector(".ai-qa-response-box");
+
+    const submitQuestion = () => {
+        const questionText = qaInput.value.trim();
+        if (!questionText) return;
+
+        // Disable input during request
+        qaInput.disabled = true;
+        askBtn.disabled = true;
+        askBtn.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width: 12px; height: 12px;"></i> Asking...`;
+        lucide.createIcons();
+
+        // Append interactive block containing user query and active loader placeholder
+        const chatBlock = document.createElement("div");
+        chatBlock.className = "chat-history-block";
+        chatBlock.innerHTML = `
+            <div class="chat-user-msg">
+                <span class="chat-sender">You:</span> ${questionText}
+            </div>
+            <div class="chat-ai-msg loading-msg">
+                <span class="chat-sender"><i data-lucide="sparkles" style="width: 12px; height: 12px; color: var(--primary);"></i> AI Response:</span>
+                <span class="pulse-loading" style="color: var(--text-secondary);">
+                    <span class="pulse-dot"></span> Consulting RAG and formulating analysis...
+                </span>
+            </div>
+        `;
+        responseBox.appendChild(chatBlock);
+        responseBox.style.display = "block";
+        lucide.createIcons();
+
+        // Clear input box immediately
+        qaInput.value = "";
+
+        axios.post("/ai/ask-question", {
+            plot_type: plotType,
+            question: questionText
+        })
+        .then(qaRes => {
+            qaInput.disabled = false;
+            askBtn.disabled = false;
+            askBtn.innerHTML = `<i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask`;
+            lucide.createIcons();
+
+            const aiMsgElement = chatBlock.querySelector(".chat-ai-msg");
+            aiMsgElement.classList.remove("loading-msg");
+
+            if (qaRes.data.success) {
+                aiMsgElement.innerHTML = `
+                    <span class="chat-sender"><i data-lucide="sparkles" style="width: 12px; height: 12px; color: var(--primary);"></i> AI Response:</span>
+                    <div class="ai-qa-answer-text">${formatMarkdownResponse(qaRes.data.answer)}</div>
+                `;
+                lucide.createIcons();
+            } else {
+                aiMsgElement.innerHTML = `
+                    <span class="chat-sender" style="color: var(--danger);"><i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> AI Error:</span>
+                    <div class="ai-qa-answer-text" style="color: var(--danger);">${qaRes.data.error || "Failed to formulate response."}</div>
+                `;
+                lucide.createIcons();
+            }
+        })
+        .catch(err => {
+            qaInput.disabled = false;
+            askBtn.disabled = false;
+            askBtn.innerHTML = `<i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask`;
+            lucide.createIcons();
+
+            const aiMsgElement = chatBlock.querySelector(".chat-ai-msg");
+            aiMsgElement.classList.remove("loading-msg");
+            aiMsgElement.innerHTML = `
+                <span class="chat-sender" style="color: var(--danger);"><i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> Connection Error:</span>
+                <div class="ai-qa-answer-text" style="color: var(--danger);">${err.message}</div>
+            `;
+            lucide.createIcons();
+        });
+    };
+
+    askBtn.addEventListener("click", submitQuestion);
+    qaInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            submitQuestion();
+        }
+    });
 }
 
 function executeVisionAiAnalysis(base64Str, plotType, container, button) {
@@ -611,160 +795,7 @@ function executeVisionAiAnalysis(base64Str, plotType, container, button) {
         if (response.data.success) {
             const rawAnalysis = response.data.analysis;
             currentDiagnoses[plotType] = rawAnalysis;
-            
-            // Render beautiful diagnostic panel with header actions & interactive Q&A
-            container.innerHTML = `
-                <div class="ai-diagnosis-container glass-card">
-                    <div class="ai-diagnosis-header">
-                        <div class="ai-diagnosis-title">
-                            <i data-lucide="bot"></i> AI Scientific Diagnostics
-                        </div>
-                        <button class="original-plot-btn copy-btn" style="padding: 4px 10px; font-size: 11px;">
-                            <i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy
-                        </button>
-                    </div>
-                    <div class="ai-diagnosis-content">${formatMarkdownResponse(rawAnalysis)}</div>
-                    
-                    <!-- Q&A Interactive Thread -->
-                    <div class="ai-qa-section">
-                        <div class="ai-qa-header">
-                            <i data-lucide="message-square"></i> Ask a question about this plot
-                        </div>
-                        <div class="ai-qa-response-box" style="display: none;"></div>
-                        <div class="ai-qa-input-wrapper">
-                            <input type="text" class="ai-qa-input" placeholder="Ask a question about this specific ${plotType}...">
-                            <button class="original-plot-btn primary ask-btn" style="padding: 8px 14px;">
-                                <i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            lucide.createIcons();
-
-            // Bind Copy Button Handler
-            const copyBtn = container.querySelector(".copy-btn");
-            copyBtn.addEventListener("click", () => {
-                let copyPromise;
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    copyPromise = navigator.clipboard.writeText(rawAnalysis);
-                } else {
-                    const textarea = document.createElement("textarea");
-                    textarea.value = rawAnalysis;
-                    textarea.style.position = "fixed";
-                    textarea.style.opacity = "0";
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    try {
-                        document.execCommand("copy");
-                        copyPromise = Promise.resolve();
-                    } catch (e) {
-                        copyPromise = Promise.reject(e);
-                    }
-                    document.body.removeChild(textarea);
-                }
-
-                copyPromise
-                    .then(() => {
-                        copyBtn.innerHTML = `<i data-lucide="check" style="color: var(--success); width: 12px; height: 12px;"></i> Copied!`;
-                        lucide.createIcons();
-                        showToast("Diagnostics copied to clipboard!");
-                        setTimeout(() => {
-                            copyBtn.innerHTML = `<i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy`;
-                            lucide.createIcons();
-                        }, 2000);
-                    })
-                    .catch(err => {
-                        showToast("Failed to copy text: " + err);
-                    });
-            });
-
-            // Bind Q&A Submit Handlers
-            const qaInput = container.querySelector(".ai-qa-input");
-            const askBtn = container.querySelector(".ask-btn");
-            const responseBox = container.querySelector(".ai-qa-response-box");
-
-            const submitQuestion = () => {
-                const questionText = qaInput.value.trim();
-                if (!questionText) return;
-
-                // Disable input during request
-                qaInput.disabled = true;
-                askBtn.disabled = true;
-                askBtn.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width: 12px; height: 12px;"></i> Asking...`;
-                lucide.createIcons();
-
-                // Append interactive block containing user query and active loader placeholder
-                const chatBlock = document.createElement("div");
-                chatBlock.className = "chat-history-block";
-                chatBlock.innerHTML = `
-                    <div class="chat-user-msg">
-                        <span class="chat-sender">You:</span> ${questionText}
-                    </div>
-                    <div class="chat-ai-msg loading-msg">
-                        <span class="chat-sender"><i data-lucide="sparkles" style="width: 12px; height: 12px; color: var(--primary);"></i> AI Response:</span>
-                        <span class="pulse-loading" style="color: var(--text-secondary);">
-                            <span class="pulse-dot"></span> Consulting RAG and formulating analysis...
-                        </span>
-                    </div>
-                `;
-                responseBox.appendChild(chatBlock);
-                responseBox.style.display = "block";
-                lucide.createIcons();
-
-                // Clear input box immediately so researcher can type their next query
-                qaInput.value = "";
-
-                axios.post("/ai/ask-question", {
-                    plot_type: plotType,
-                    question: questionText
-                })
-                .then(qaRes => {
-                    qaInput.disabled = false;
-                    askBtn.disabled = false;
-                    askBtn.innerHTML = `<i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask`;
-                    lucide.createIcons();
-
-                    const aiMsgElement = chatBlock.querySelector(".chat-ai-msg");
-                    aiMsgElement.classList.remove("loading-msg");
-
-                    if (qaRes.data.success) {
-                        aiMsgElement.innerHTML = `
-                            <span class="chat-sender"><i data-lucide="sparkles" style="width: 12px; height: 12px; color: var(--primary);"></i> AI Response:</span>
-                            <div class="ai-qa-answer-text">${formatMarkdownResponse(qaRes.data.answer)}</div>
-                        `;
-                        lucide.createIcons();
-                    } else {
-                        aiMsgElement.innerHTML = `
-                            <span class="chat-sender" style="color: var(--danger);"><i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> AI Error:</span>
-                            <div class="ai-qa-answer-text" style="color: var(--danger);">${qaRes.data.error || "Failed to formulate response."}</div>
-                        `;
-                        lucide.createIcons();
-                    }
-                })
-                .catch(err => {
-                    qaInput.disabled = false;
-                    askBtn.disabled = false;
-                    askBtn.innerHTML = `<i data-lucide="send" style="width: 12px; height: 12px;"></i> Ask`;
-                    lucide.createIcons();
-
-                    const aiMsgElement = chatBlock.querySelector(".chat-ai-msg");
-                    aiMsgElement.classList.remove("loading-msg");
-                    aiMsgElement.innerHTML = `
-                        <span class="chat-sender" style="color: var(--danger);"><i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i> Connection Error:</span>
-                        <div class="ai-qa-answer-text" style="color: var(--danger);">${err.message}</div>
-                    `;
-                    lucide.createIcons();
-                });
-            };
-
-            askBtn.addEventListener("click", submitQuestion);
-            qaInput.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    submitQuestion();
-                }
-            });
-
+            renderDiagnosisInContainer(container, plotType, rawAnalysis);
         } else {
             container.innerHTML = `
                 <div class="ai-diagnosis-container glass-card" style="border-left-color: #ff3b30;">

@@ -39,18 +39,25 @@ def generate_zip_archive(plots_data: Dict[str, str]) -> io.BytesIO:
 
 def parse_inline_markdown(text: str) -> str:
     """
-    Safely convert double asterisks to ReportLab-friendly bold tags.
+    Safely convert double asterisks to ReportLab-friendly bold tags,
+    escaping standard XML characters first to avoid ReportLab parser crashes.
     """
     if not text:
         return ""
-    parts = text.split("**")
-    xml_parts = []
-    for idx, part in enumerate(parts):
-        if idx % 2 == 1:
-            xml_parts.append(f"<b>{part}</b>")
-        else:
-            xml_parts.append(part)
-    return "".join(xml_parts)
+    import re
+    # 1. Escape XML standard entities to prevent syntax crashes
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    
+    # 2. Convert double asterisks **bold** to <b>bold</b>
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    # 3. Convert single asterisk *italic* to <i>italic</i>
+    text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
+    # 4. Support standard underscores _italic_
+    text = re.sub(r'_(.*?)_', r'<i>\1</i>', text)
+    
+    # 5. Restore standard ReportLab bullet entity if we had it
+    text = text.replace("&amp;bull;", "&bull;")
+    return text
 
 def add_markdown_flowables(text: str, story: list, body_style, heading_style):
     """
@@ -63,10 +70,18 @@ def add_markdown_flowables(text: str, story: list, body_style, heading_style):
     import re
     from reportlab.platypus import Paragraph, Spacer
     
-    # 1. Strip raw decorative separators like ===, ---, ___ or »»»
+    # 1. Clean up excessive decorative separators (e.g. ===, ---, ___ or »»»)
     text = re.sub(r'[=\-_»~—]{3,}', '', text)
     
-    # 2. Split into distinct logical text blocks
+    # 2. Pre-process dialogue lines to split the dialogue label from the response
+    # if followed by markdown headers or lists to prevent nested header glitches.
+    text = re.sub(
+        r'\*\*(AI Consultant|Researcher):\*\*\s*(##+|-\s*|\*\s*|•\s*)',
+        r'**\1:**\n\n\2',
+        text
+    )
+    
+    # 3. Split into distinct logical blocks by double newlines
     blocks = text.split("\n\n")
     for block in blocks:
         block_stripped = block.strip()
@@ -76,38 +91,68 @@ def add_markdown_flowables(text: str, story: list, body_style, heading_style):
         # Parse Setext header: line followed by a divider line of === or ---
         lines = [l.strip() for l in block_stripped.split("\n") if l.strip()]
         if len(lines) == 2 and re.match(r'^[=\-]{3,}$', lines[1]):
-            story.append(Paragraph(lines[0], heading_style))
-            story.append(Spacer(1, 4))
+            clean_title = parse_inline_markdown(lines[0])
+            story.append(Paragraph(clean_title, heading_style))
             continue
             
-        # Handle regular ATX header styles (e.g. ###, ##, #)
-        if block_stripped.startswith("### "):
-            story.append(Paragraph(block_stripped[4:].strip(), heading_style))
-            story.append(Spacer(1, 4))
-        elif block_stripped.startswith("## "):
-            story.append(Paragraph(block_stripped[3:].strip(), heading_style))
-            story.append(Spacer(1, 4))
-        elif block_stripped.startswith("# "):
-            story.append(Paragraph(block_stripped[2:].strip(), heading_style))
-            story.append(Spacer(1, 4))
-            
-        # Handle Bullet List Blocks
-        elif block_stripped.startswith("- ") or block_stripped.startswith("* ") or block_stripped.startswith("• "):
+        # If the block contains inline markdown headers or lists, process line-by-line
+        # to ensure that headings/bullets inside a block are parsed independently.
+        has_internal_headers_or_lists = False
+        for line in lines:
+            l_stripped = line.strip()
+            if l_stripped.startswith("### ") or l_stripped.startswith("## ") or l_stripped.startswith("# ") or l_stripped.startswith("- ") or l_stripped.startswith("* ") or l_stripped.startswith("• "):
+                has_internal_headers_or_lists = True
+                break
+                
+        if has_internal_headers_or_lists:
             for line in block_stripped.split("\n"):
-                line_stripped = line.strip()
-                if line_stripped.startswith("- ") or line_stripped.startswith("* ") or line_stripped.startswith("• "):
-                    content = line_stripped.lstrip("-*• ")
+                l_stripped = line.strip()
+                if not l_stripped:
+                    continue
+                    
+                if l_stripped.startswith("### "):
+                    clean_title = parse_inline_markdown(l_stripped[4:].strip())
+                    story.append(Paragraph(clean_title, heading_style))
+                elif l_stripped.startswith("## "):
+                    clean_title = parse_inline_markdown(l_stripped[3:].strip())
+                    story.append(Paragraph(clean_title, heading_style))
+                elif l_stripped.startswith("# "):
+                    clean_title = parse_inline_markdown(l_stripped[2:].strip())
+                    story.append(Paragraph(clean_title, heading_style))
+                elif l_stripped.startswith("- ") or l_stripped.startswith("* ") or l_stripped.startswith("• "):
+                    content = l_stripped.lstrip("-*• ")
                     content_xml = parse_inline_markdown(content)
                     story.append(Paragraph(f"&bull; {content_xml}", body_style))
-            story.append(Spacer(1, 4))
+                else:
+                    content_xml = parse_inline_markdown(l_stripped)
+                    story.append(Paragraph(content_xml, body_style))
+            continue
+
+        # Handle single block starting with ATX headers
+        if block_stripped.startswith("### "):
+            clean_title = parse_inline_markdown(block_stripped[4:].strip())
+            story.append(Paragraph(clean_title, heading_style))
+        elif block_stripped.startswith("## "):
+            clean_title = parse_inline_markdown(block_stripped[3:].strip())
+            story.append(Paragraph(clean_title, heading_style))
+        elif block_stripped.startswith("# "):
+            clean_title = parse_inline_markdown(block_stripped[2:].strip())
+            story.append(Paragraph(clean_title, heading_style))
             
-        # Handle Standard Scientific Body Text
+        # Handle pure Bullet List Blocks
+        elif block_stripped.startswith("- ") or block_stripped.startswith("* ") or block_stripped.startswith("• "):
+            for line in block_stripped.split("\n"):
+                l_stripped = line.strip()
+                if l_stripped.startswith("- ") or l_stripped.startswith("* ") or l_stripped.startswith("• "):
+                    content = l_stripped.lstrip("-*• ")
+                    content_xml = parse_inline_markdown(content)
+                    story.append(Paragraph(f"&bull; {content_xml}", body_style))
+            
+        # Handle standard scientific body text block
         else:
-            # Join single-wrapped line breaks into a clean cohesive paragraph text
             cleaned_p = " ".join(lines)
             p_xml = parse_inline_markdown(cleaned_p)
             story.append(Paragraph(p_xml, body_style))
-            story.append(Spacer(1, 6))
 
 def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, str]) -> io.BytesIO:
     """
@@ -134,7 +179,7 @@ def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, st
 
     styles = getSampleStyleSheet()
     
-    # Custom scientific document palette
+    # Custom scientific document palette matching strict design requirements
     title_style = ParagraphStyle(
         'DocTitle',
         parent=styles['Heading1'],
@@ -143,15 +188,15 @@ def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, st
         leading=24,
         textColor=colors.HexColor("#1A365D"),
         alignment=1,  # Center alignment
-        spaceAfter=6
+        spaceAfter=12
     )
     
     subtitle_style = ParagraphStyle(
         'DocSubtitle',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=8.5,
-        leading=11,
+        fontSize=12,
+        leading=18,
         textColor=colors.HexColor("#4A5568"),
         alignment=1,
         spaceAfter=20
@@ -161,21 +206,21 @@ def generate_pdf_report(plots_data: Dict[str, str], diagnoses_data: Dict[str, st
         'SectionHeader',
         parent=styles['Heading2'],
         fontName='Helvetica-Bold',
-        fontSize=13,
-        leading=16,
+        fontSize=12,
+        leading=18,
         textColor=colors.HexColor("#1A365D"),
         spaceBefore=14,
-        spaceAfter=8
+        spaceAfter=12
     )
 
     body_style = ParagraphStyle(
         'ReportBody',
         parent=styles['BodyText'],
         fontName='Helvetica',
-        fontSize=9.5,
-        leading=13.5,
+        fontSize=12,
+        leading=18,
         textColor=colors.HexColor("#2D3748"),
-        spaceAfter=8
+        spaceAfter=12
     )
 
     story = []

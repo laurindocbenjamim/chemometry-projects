@@ -149,23 +149,8 @@
 
         <!-- Main Display Panel -->
         <section class="main-display">
-            <!-- Progress Bar -->
-            <div id="progress-container" class="progress-container" style="display: none;">
-                <div class="progress-bar-wrapper">
-                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
-                </div>
-                <span class="progress-text" id="progress-text">Ready...</span>
-            </div>
-
-            <!-- Empty State -->
-            <div id="empty-state" class="empty-state glass-card">
-                <i data-lucide="bar-chart-3" class="placeholder-icon animate-float"></i>
-                <h2>Ready for Spectrometric Processing</h2>
-                <p>Upload your spectroscopy data files (.csv or .sp) and configure the chemometric algorithms on the left to begin interactive visualization.</p>
-            </div>
-
-            <!-- Dashboard Charts Container -->
-            <div id="dashboard-content" class="dashboard-content" style="display: none;">
+            <!-- Dashboard Fixed Header -->
+            <div id="dashboard-header" class="dashboard-header" style="display: none;">
                 <!-- Pipeline Preprocessing Stages Progress Tracker -->
                 <div class="stages-tracker-container" id="stages-tracker-container" style="display: none;">
                     <span class="tracker-label">Pipeline Phase:</span>
@@ -173,8 +158,8 @@
                 </div>
 
                 <!-- Visualization Mode Switcher & Action Buttons -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
-                    <div class="segment-control glass-card" style="margin-top: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px;">
+                    <div class="segment-control glass-card" style="margin-top: 0; margin-bottom: 0;">
                         <button type="button" class="segment-btn active" id="btn-show-interactive">
                             <i data-lucide="bar-chart-2"></i> Interactive Charts (ApexCharts)
                         </button>
@@ -183,12 +168,47 @@
                         </button>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <button type="button" class="action-btn secondary-btn" id="btn-download-all-plots" style="display: none; padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; align-items: center; gap: 8px; cursor: pointer; transition: all 0.3s ease; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.2); color: var(--primary);">
+                        <button type="button" class="action-btn secondary-btn" id="btn-download-all-plots" style="display: none; padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; align-items: center; gap: 8px; cursor: pointer; transition: all 0.3s ease; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.2); color: var(--primary); margin-top: 0;">
                             <i data-lucide="download"></i> Download All Plots
                         </button>
-                        <button type="button" class="action-btn secondary-btn" id="btn-reset-dashboard" style="padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.3s ease;">
+                        <button type="button" class="action-btn secondary-btn" id="btn-reset-dashboard" style="padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.3s ease; margin-top: 0;">
                             <i data-lucide="refresh-cw"></i> Start New Process
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dashboard-scroll-area" style="flex: 1; overflow-y: auto; padding-right: 4px;">
+                <!-- Progress Bar -->
+                <div id="progress-container" class="progress-container" style="display: none;">
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                    </div>
+                    <span class="progress-text" id="progress-text">Ready...</span>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state glass-card">
+                    <i data-lucide="bar-chart-3" class="placeholder-icon animate-float"></i>
+                    <h2>Ready for Spectrometric Processing</h2>
+                    <p>Upload your spectroscopy data files (.csv or .sp) and configure the chemometric algorithms on the left to begin interactive visualization.</p>
+                </div>
+
+                <!-- Dashboard Charts Container -->
+                <div id="dashboard-content" class="dashboard-content" style="display: none;">
+
+                <!-- PDF Report Export Settings (Visible only when dashboard active) -->
+                <div id="pdf-report-settings-container" class="glass-card" style="display: none; flex-direction: column; gap: 8px; margin-bottom: 16px; padding: 16px;">
+                    <h3 style="margin-bottom: 8px; font-size: 13px; color: var(--text-secondary);">PDF Report Customization</h3>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                        <div class="input-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                            <label for="report-title">Report Title</label>
+                            <input type="text" id="report-title" value="AI Scientific Spectroscopy Diagnostics Report" style="width: 100%; border: 1px solid var(--border-card); background: rgba(16, 20, 38, 0.5); border-radius: 8px; color: var(--text-primary); padding: 8px 12px; font-size: 12px; outline: none;">
+                        </div>
+                        <div class="input-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                            <label for="report-subtitle">Report Subtitle</label>
+                            <input type="text" id="report-subtitle" value="AUTOGENERATED SCIENCE PIPELINE REPORT" style="width: 100%; border: 1px solid var(--border-card); background: rgba(16, 20, 38, 0.5); border-radius: 8px; color: var(--text-primary); padding: 8px 12px; font-size: 12px; outline: none;">
+                        </div>
                     </div>
                 </div>
 
@@ -221,6 +241,7 @@
                 <div class="original-plots-grid" id="original-plots-grid" style="display: none;">
                     <!-- Matplotlib high-res png files dynamically loaded here -->
                 </div>
+            </div>
             </div>
         </section>
     </main>

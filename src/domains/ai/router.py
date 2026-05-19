@@ -116,7 +116,12 @@ def export_pdf_endpoint(request: ExportPdfRequest, session_token: str = Cookie(N
             detail="No plots provided to compile."
         )
     try:
-        pdf_io = generate_pdf_report(request.plots, request.diagnoses)
+        pdf_io = generate_pdf_report(
+            request.plots, 
+            request.diagnoses,
+            title=request.title,
+            subtitle=request.subtitle
+        )
         return StreamingResponse(
             pdf_io,
             media_type="application/pdf",

@@ -869,23 +869,76 @@ function executeVisionAiAnalysis(base64Str, plotType, container, button) {
 
 function formatMarkdownResponse(text) {
     if (!text) return "";
-    
-    // Clean up excessive decorative separator characters (like ====, ----, _____, »»»»)
-    let cleanedText = text.replace(/[=\-_»~—_]{3,}/g, "");
 
-    // Elegant regex mapping for headers and lists to make the output extremely high-fidelity
-    let html = cleanedText
+    // Decode HTML entities that may come from API response
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = text;
+    text = textarea.value;
+
+    // 1. Protect LaTeX blocks ($$...$$) and inline ($...$) from markdown transforms
+    const mathBlocks = [];
+    const BLOCK_PLACEHOLDER = "%%MATHBLOCK%%";
+    const INLINE_PLACEHOLDER = "%%MATHINLINE%%";
+
+    // Extract display math $$ ... $$ first (greedy to handle multi-line)
+    let processed = text.replace(/\$\$([\s\S]+)\$\$/g, (_, expr) => {
+        mathBlocks.push({ type: "block", expr: expr.trim() });
+        return `${BLOCK_PLACEHOLDER}${mathBlocks.length - 1}%%`;
+    });
+
+    // Then extract inline math $ ... $ (greedy, allow internal dashes and underscores)
+    processed = processed.replace(/\$([^\n$]+)\$/g, (_, expr) => {
+        mathBlocks.push({ type: "inline", expr: expr.trim() });
+        return `${INLINE_PLACEHOLDER}${mathBlocks.length - 1}%%`;
+    });
+
+    // 2. Clean up excessive decorative separator characters
+    processed = processed.replace(/[=\-_»~—_]{3,}/g, "");
+
+    // 3. Standard markdown transforms
+    let html = processed
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/### (.*?)\n/g, '<h3>$1</h3>')
         .replace(/## (.*?)\n/g, '<h3>$1</h3>')
         .replace(/# (.*?)\n/g, '<h3>$1</h3>')
         .replace(/^\s*\*\s+(.*?)$/gm, '<li>$1</li>')
         .replace(/^\s*-\s+(.*?)$/gm, '<li>$1</li>');
-        
-    // Wrap consecutive list items in ul blocks
+
+    // Wrap consecutive list items in <ul>
     html = html.replace(/(<li>.*?<\/li>)+/g, match => `<ul>${match}</ul>`);
+
+    // 4. Re-inject math expressions as KaTeX-rendered HTML
+    html = html.replace(/%%MATHBLOCK%%([0-9]+)%%/g, (_, idx) => {
+        const { expr } = mathBlocks[parseInt(idx)];
+        try {
+            return `<div class="katex-block">${katex.renderToString(expr, { displayMode: true, throwOnError: false })}</div>`;
+        } catch { return `<code>$$${expr}$$</code>`; }
+    });
+
+    html = html.replace(/%%MATHINLINE%%([0-9]+)%%/g, (_, idx) => {
+        const { expr } = mathBlocks[parseInt(idx)];
+        try {
+            return katex.renderToString(expr, { displayMode: false, throwOnError: false });
+        } catch { return `<code>$${expr}$</code>`; }
+    });
+
     return html;
 }
+
+// Called by KaTeX auto-render script onload — renders any math missed by dynamic injection
+function renderMathInDocument() {
+    if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$',  right: '$',  display: false }
+            ],
+            throwOnError: false
+        });
+    }
+}
+
 
 function showAlert(message, type = "warning") {
     // Locate or create the alert container

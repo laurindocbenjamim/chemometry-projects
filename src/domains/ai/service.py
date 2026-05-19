@@ -18,16 +18,21 @@ def analyze_plot_with_groq(image_base64: str, plot_type: str, context: str) -> s
 
     # Construct the scientific analysis prompt emphasizing context-driven diagnosis
     prompt_text = (
-        f"You are an expert chemometrician, spectroscopist, and data scientist.\n"
-        f"You are analyzing a Spectroscopy/Chemometrics chart: {plot_type}.\n\n"
-        f"CRITICAL RESEARCH CONTEXT (provided by the researcher for this study):\n"
-        f"{context if context else 'No study context provided.'}\n\n"
-        f"TASK:\n"
-        f"Provide a concise, professional, and visually rigorous summary that directly connects the visual findings of this plot to the researcher's study context (interpret clusters, peak alignments, baseline shifts, residuals, or variance levels in light of their experimental samples, objectives, and parameters). Explain:\n"
-        f"1. What this plot represents in their chemometric workflow and study.\n"
-        f"2. The key insights, patterns, groupings, or anomalies observable, explicitly correlating them with the researcher's study variables or samples.\n"
-        f"3. Practical recommendations or next analytical steps tailored to their objectives.\n\n"
-        f"Format your response using bold markdown headers and bullet points. Keep it highly factual, clear, actionable, and deeply customized to their study. Limit to 3 short paragraphs."
+        f"You are a distinguished Senior Chemometrician and Data Scientist performing a rigorous peer-review level analysis of a {plot_type}.\n\n"
+        f"CRITICAL RESEARCH CONTEXT:\n"
+        f"{context if context else 'No study context provided. Perform a blind baseline chemometric analysis.'}\n\n"
+        f"YOUR OBJECTIVE:\n"
+        f"Diagnose this plot with extreme scientific precision. Do not just describe what you see visually (e.g., 'red dots on the right')—you must explain the *mathematical and chemical significance* of the visual structures (e.g., 'Samples in the upper right quadrant exhibit high Hotelling's T² indicating high leverage, driven by specific spectral features').\n\n"
+        f"Please structure your diagnosis as follows:\n\n"
+        f"**1. Methodological Purpose:**\n"
+        f"Briefly explain the underlying chemometric theory of this specific plot type (e.g., what do Scores, Loadings, Scree, or Residuals mathematically represent in PCA/PLS/RAMAN models).\n\n"
+        f"**2. Diagnostic Findings & Interpretation:**\n"
+        f"- Analyze the variance, distributions, clustering patterns, or baseline shifts.\n"
+        f"- Explicitly tie the visual groupings or variance capture (e.g., PC1 vs PC2) to the provided research context.\n"
+        f"- Identify potential anomalies, outliers, over-fitting risks, or spectral artifacts.\n\n"
+        f"**3. Strategic Recommendations:**\n"
+        f"- What preprocessing step (SNV, SG Filter) or algorithmic shift should the researcher test next based on this visual data?\n\n"
+        f"Output using crisp, professional markdown. Use bullet points for readability. Avoid generic fluff. Be highly analytical and strictly scientific."
     )
 
     if provider == "ollama":

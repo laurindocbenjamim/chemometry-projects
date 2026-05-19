@@ -25,7 +25,7 @@
 
 body {
     background-color: var(--bg-main);
-    background-image: 
+    background-image:
         radial-gradient(at 0% 0%, rgba(157, 78, 221, 0.12) 0px, transparent 50%),
         radial-gradient(at 100% 100%, rgba(0, 240, 255, 0.12) 0px, transparent 50%);
     color: var(--text-primary);
@@ -116,7 +116,8 @@ body {
     gap: 24px;
     padding: 24px 40px;
     flex-grow: 1;
-    height: calc(100vh - 73px); /* 73px matches header height */
+    height: calc(100vh - 73px);
+    /* 73px matches header height */
     overflow: hidden;
 }
 
@@ -125,15 +126,18 @@ body {
         height: auto;
         overflow: auto;
     }
+
     .dashboard-grid {
         grid-template-columns: 1fr;
         height: auto;
         overflow: visible;
     }
+
     .sidebar-panel {
         height: auto;
         overflow: visible;
     }
+
     .main-display {
         height: auto;
         overflow: visible;
@@ -189,7 +193,8 @@ h3 {
     position: relative;
 }
 
-select, input[type="number"] {
+select,
+input[type="number"] {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border-card);
     border-radius: 8px;
@@ -201,7 +206,8 @@ select, input[type="number"] {
     transition: var(--transition);
 }
 
-select:focus, input[type="number"]:focus {
+select:focus,
+input[type="number"]:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 2px var(--primary-glow);
 }
@@ -240,11 +246,11 @@ select:focus, input[type="number"]:focus {
     transition: var(--transition);
 }
 
-.switch-container input:checked + .switch-slider {
+.switch-container input:checked+.switch-slider {
     background: var(--primary);
 }
 
-.switch-container input:checked + .switch-slider::before {
+.switch-container input:checked+.switch-slider::before {
     transform: translateX(16px);
     background: var(--bg-main);
 }
@@ -273,7 +279,8 @@ select:focus, input[type="number"]:focus {
     background: rgba(255, 255, 255, 0.01);
 }
 
-.upload-zone:hover, .upload-zone.dragover {
+.upload-zone:hover,
+.upload-zone.dragover {
     border-color: var(--primary);
     background: rgba(0, 240, 255, 0.02);
 }
@@ -479,13 +486,27 @@ button {
 
 /* Keyframes */
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 /* Selected Files Count */
@@ -573,6 +594,7 @@ button {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
     gap: 24px;
+    height: 700px;
 }
 
 .original-plot-card {
@@ -587,7 +609,8 @@ button {
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    background: #fff; /* Matplotlib exports white backgrounds by default */
+    background: #fff;
+    /* Matplotlib exports white backgrounds by default */
 }
 
 /* Pipeline stages tracker progress */
@@ -755,10 +778,12 @@ button {
 .icon-grid::-webkit-scrollbar {
     width: 6px;
 }
+
 .icon-grid::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.02);
     border-radius: var(--radius);
 }
+
 .icon-grid::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: var(--radius);
@@ -826,12 +851,22 @@ button {
 }
 
 @keyframes slideUp {
-    from { transform: translateY(50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 @keyframes fadeOut {
-    to { opacity: 0; transform: translateY(-10px); }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
 }
 
 /* Modern smooth alerts and notifications container */
@@ -915,6 +950,7 @@ button {
     border-left-color: #ffb703;
     box-shadow: 0 8px 32px 0 rgba(255, 183, 3, 0.15);
 }
+
 .alert-toast.warning .alert-toast-icon {
     color: #ffb703;
 }
@@ -923,6 +959,7 @@ button {
     border-left-color: #ff4d4d;
     box-shadow: 0 8px 32px 0 rgba(255, 77, 77, 0.15);
 }
+
 .alert-toast.error .alert-toast-icon {
     color: #ff4d4d;
 }
@@ -931,6 +968,7 @@ button {
     border-left-color: #2ec4b6;
     box-shadow: 0 8px 32px 0 rgba(46, 196, 182, 0.15);
 }
+
 .alert-toast.success .alert-toast-icon {
     color: #2ec4b6;
 }
@@ -939,6 +977,7 @@ button {
     border-left-color: var(--primary);
     box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.15);
 }
+
 .alert-toast.info .alert-toast-icon {
     color: var(--primary);
 }
@@ -1175,6 +1214,7 @@ button {
         opacity: 0;
         transform: translateY(-8px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1190,6 +1230,7 @@ button {
         opacity: 1;
         transform: translateY(0);
     }
+
     to {
         opacity: 0;
         transform: translateY(-8px);
@@ -1302,7 +1343,3 @@ label .info-tooltip[data-tooltip]:hover::after {
 .switch-label .info-tooltip[data-tooltip]:hover::after {
     bottom: 100%;
 }
-
-
-
-

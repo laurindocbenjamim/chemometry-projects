@@ -36,9 +36,11 @@ def parse_file_to_spectrum(content: bytes, filename: str, expected_format: str) 
             raise KeyError(f"Absorbance column not found in CSV {filename}")
         return df_aux[absorbance_col].to_numpy(), df_aux["Wavelength (nm)"].to_numpy(), {"name": filename.replace(".csv", "")}
 
-def run_pca_stage(X_orig: np.ndarray, X_stage: np.ndarray, wl_list: list, sample_names: list, classes: list) -> dict:
+def run_pca_stage(X_orig: np.ndarray, X_stage: np.ndarray, wl_list: list, sample_names: list, classes: list, n_components: int = 2) -> dict:
     """Utility to run PCA projection and compile ApexCharts + Matplotlib plot sets for a stage."""
-    pca = PCA(n_components=2)
+    # Ensure n_components isn't greater than number of samples
+    n_components = min(n_components, X_stage.shape[0], X_stage.shape[1])
+    pca = PCA(n_components=n_components)
     X_pca = pca.fit_transform(X_stage)
     var_ratio = pca.explained_variance_ratio_.tolist()
     loadings = pca.components_.T
@@ -105,20 +107,20 @@ def process_spectroscopy_pipeline(files: list, request: PipelineRequest) -> dict
 
     if algo == "PCA":
         stages, active_stages = {}, ["raw"]
-        stages["raw"] = run_pca_stage(X, X, wl_list, sample_names, classes)
+        stages["raw"] = run_pca_stage(X, X, wl_list, sample_names, classes, request.n_components)
         
         X_curr = X.copy()
         if request.preprocessing.snv:
             X_curr = calculate_snv(X_curr)
-            stages["snv"] = run_pca_stage(X, X_curr, wl_list, sample_names, classes)
+            stages["snv"] = run_pca_stage(X, X_curr, wl_list, sample_names, classes, request.n_components)
             active_stages.append("snv")
         if request.preprocessing.sg_filter:
             X_curr = savitzky_golay_filter(X_curr, request.preprocessing.sg_window_length, request.preprocessing.sg_polyorder, request.preprocessing.sg_deriv)
-            stages["sg"] = run_pca_stage(X, X_curr, wl_list, sample_names, classes)
+            stages["sg"] = run_pca_stage(X, X_curr, wl_list, sample_names, classes, request.n_components)
             active_stages.append("sg")
         if request.preprocessing.mean_center:
             X_curr = mean_centering(X_curr)
-            stages["mc"] = run_pca_stage(X, X_curr, wl_list, sample_names, classes)
+            stages["mc"] = run_pca_stage(X, X_curr, wl_list, sample_names, classes, request.n_components)
             active_stages.append("mc")
 
         return {
@@ -141,7 +143,8 @@ def process_spectroscopy_pipeline(files: list, request: PipelineRequest) -> dict
         if request.preprocessing.sg_filter: X_curr = savitzky_golay_filter(X_curr, request.preprocessing.sg_window_length, request.preprocessing.sg_polyorder, request.preprocessing.sg_deriv)
         if request.preprocessing.mean_center: X_curr = mean_centering(X_curr)
 
-        pls = PLSRegression(n_components=2)
+        n_comp = min(request.n_components, X_curr.shape[0], X_curr.shape[1])
+        pls = PLSRegression(n_components=n_comp)
         pls.fit(X_curr, Y)
         X_pls = pls.x_scores_
         loadings = pls.x_loadings_.tolist()
@@ -161,7 +164,7 @@ def process_spectroscopy_pipeline(files: list, request: PipelineRequest) -> dict
         }
 
     elif algo == "RAMAN":
-        corrected, baselines = baseline_als(X, lam=1e5, p=0.01)
+        corrected, baselines = baseline_als(X, lam=request.raman_lambda, p=request.raman_p)
         raman_plots = {
             "wavelengths": wl_list,
             "samples": [{"name": sample_names[i], "class": classes[i], "raw": X[i].tolist(), "corrected": corrected[i].tolist(), "baseline": baselines[i].tolist()} for i in range(len(sample_names))]

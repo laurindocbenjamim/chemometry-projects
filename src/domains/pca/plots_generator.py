@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')  # Enforce headless rendering
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 def _fig_to_base64(fig) -> str:
     """Converts a Matplotlib figure into a base64 encoded PNG string."""
@@ -19,19 +20,20 @@ def generate_matplotlib_plots(algo: str, X_orig: np.ndarray, X_processed: np.nda
     """Generates the original scientific Matplotlib plots as base64 strings."""
     unique_classes = sorted(list(set(classes)))
     # Safe cyclic color map if there are many classes
-    color_map = {cls: plt.cm.tab10(i % 10) for i, cls in enumerate(unique_classes)}
+    num_classes = len(unique_classes)
+    color_map = {cls: plt.cm.jet(i / max(1, num_classes - 1)) for i, cls in enumerate(unique_classes)}
     original_images = {}
 
     # 1. Plot Spectral Lines by Label (All Algorithmic pipelines use this)
     try:
         fig, ax = plt.subplots(figsize=(8, 4.5))
         for i in range(len(sample_names)):
-            ax.plot(wl, X_processed[i], color=color_map[classes[i]], alpha=0.7)
+            ax.plot(X_processed[i], color=color_map[classes[i]], alpha=0.7)
         from matplotlib.lines import Line2D
         legend_el = [Line2D([0], [0], color=color_map[c], lw=2, label=f"Class {c}") for c in unique_classes]
         ax.legend(handles=legend_el)
         ax.set_title("Spectral Lines by Label (Original Matplotlib)")
-        ax.set_xlabel("Wavelength (nm)")
+        ax.set_xlabel("Wavelength Index")
         ax.set_ylabel("Intensity")
         fig.tight_layout()
         original_images["spectra"] = _fig_to_base64(fig)
@@ -71,10 +73,10 @@ def _generate_pca_plots(images: dict, extra: dict, unique_classes: list, classes
     # Scree Plot
     try:
         fig, ax = plt.subplots(figsize=(7, 4))
-        ax.plot(range(1, len(var_ratio) + 1), [v * 100 for v in var_ratio], "o-", linewidth=2, color="blue")
+        ax.plot(range(1, len(var_ratio) + 1), var_ratio, "o-", linewidth=2, color="blue")
         ax.set_title("Scree Plot")
         ax.set_xlabel("Principal Component")
-        ax.set_ylabel("Variance Explained (%)")
+        ax.set_ylabel("Variance Explained")
         ax.set_xticks(range(1, len(var_ratio) + 1))
         ax.grid(True, linestyle="--", alpha=0.5)
         fig.tight_layout()
@@ -82,13 +84,24 @@ def _generate_pca_plots(images: dict, extra: dict, unique_classes: list, classes
     except Exception:
         pass
 
+    # Loadings heatmap
+    try:
+        fig, ax = plt.subplots(figsize=(12, 8))
+        loadings_df = pd.DataFrame(loadings, columns=[f'PCA{i+1}' for i in range(loadings.shape[1])])
+        sns.heatmap(loadings_df, cmap='coolwarm', center=0, ax=ax)
+        ax.set_title("PCA Contributions Plot for Spectral Data")
+        fig.tight_layout()
+        images["loadings_heatmap"] = _fig_to_base64(fig)
+    except Exception:
+        pass
+
     # Loadings plot
     try:
         fig, ax = plt.subplots(figsize=(8, 4))
         for i in range(min(2, loadings.shape[1])):
-            ax.plot(wl, loadings[:, i], label=f"PC{i+1}")
+            ax.plot(loadings[:, i], label=f"PC{i+1}")
         ax.set_title("PCA Loadings Line Plot")
-        ax.set_xlabel("Wavelength (nm)")
+        ax.set_xlabel("Wavelength index")
         ax.set_ylabel("Loading Value")
         ax.legend()
         fig.tight_layout()
@@ -163,9 +176,9 @@ def _generate_pls_plots(images: dict, extra: dict, unique_classes: list, classes
     try:
         fig, ax = plt.subplots(figsize=(8, 4))
         for i in range(min(2, len(loadings[0]))):
-            ax.plot(wl, [l[i] for l in loadings], label=f"Component {i+1}")
+            ax.plot([l[i] for l in loadings], label=f"Component {i+1}")
         ax.set_title("PLS Loadings Line Plot")
-        ax.set_xlabel("Wavelength (nm)")
+        ax.set_xlabel("Wavelength index")
         ax.set_ylabel("Loading Value")
         ax.legend()
         fig.tight_layout()

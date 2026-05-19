@@ -29,6 +29,9 @@ class PipelineRequest(BaseModel):
     algorithm: str = Field("PCA", description="Algorithm to run: 'PCA', 'PLS', or 'RAMAN'")
     format: str = Field("auto", description="File format selection: 'csv', 'sp', or 'auto'")
     preprocessing: PreprocessingConfig = Field(default_factory=PreprocessingConfig)
+    n_components: int = Field(2, description="Number of components/latent variables", ge=1)
+    raman_lambda: float = Field(1e5, description="Lambda smoothness parameter for ALS")
+    raman_p: float = Field(0.01, description="p asymmetry parameter for ALS", ge=0.0, le=1.0)
 
     @field_validator('algorithm')
     @classmethod

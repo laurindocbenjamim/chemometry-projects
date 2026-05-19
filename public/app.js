@@ -130,6 +130,24 @@ function setupFormHandlers() {
     const sgCheck = document.getElementById("sg-filter");
     const sgOptions = document.getElementById("sg-options");
     const form = document.getElementById("pipeline-form");
+    
+    const algorithmSelect = document.getElementById("algorithm");
+    const componentsGroup = document.getElementById("components-group");
+    const ramanLambdaGroup = document.getElementById("raman-lambda-group");
+    const ramanPGroup = document.getElementById("raman-p-group");
+
+    algorithmSelect.addEventListener("change", (e) => {
+        const val = e.target.value;
+        if (val === "RAMAN") {
+            componentsGroup.style.display = "none";
+            ramanLambdaGroup.style.display = "block";
+            ramanPGroup.style.display = "block";
+        } else {
+            componentsGroup.style.display = "block";
+            ramanLambdaGroup.style.display = "none";
+            ramanPGroup.style.display = "none";
+        }
+    });
 
     sgCheck.addEventListener("change", (e) => {
         sgOptions.style.display = e.target.checked ? "block" : "none";
@@ -411,6 +429,9 @@ function executePipeline() {
     const config = {
         algorithm: algorithm,
         format: document.getElementById("file-format").value,
+        n_components: parseInt(document.getElementById("n-components").value) || 2,
+        raman_lambda: parseFloat(document.getElementById("raman-lambda").value) || 100000,
+        raman_p: parseFloat(document.getElementById("raman-p").value) || 0.01,
         preprocessing: {
             snv: document.getElementById("snv").checked,
             sg_filter: sgChecked,
